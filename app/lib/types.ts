@@ -4,6 +4,22 @@ export interface HskWord {
   pinyin: string;
   meaning: string;
   hskLevel: number;
+  frequency: number;
+}
+
+export interface FrequencyBucket {
+  rangeLabel: string;
+  min: number;
+  max: number;
+  hskCount: number;
+  trackedCount: number;
+}
+
+export interface FrequencyStats {
+  buckets: FrequencyBucket[];
+  topNTotal: number;
+  topNTracked: number;
+  coveragePercent: number;
 }
 
 export interface TrackedWords {

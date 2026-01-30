@@ -6,8 +6,10 @@ import {
   trackAllInLevel,
   untrackAllInLevel,
   getTrackedWords,
+  getFrequencyStats,
 } from "~/lib/words.server";
 import { WordList } from "~/components/word-list";
+import { FrequencyCoverage } from "~/components/frequency-coverage";
 
 const HSK_LEVELS = [1, 2, 3, 4, 5, 6] as const;
 
@@ -18,8 +20,9 @@ export function loader({ request }: Route.LoaderArgs) {
 
   const words = getWordsWithTracking(level);
   const trackedCount = getTrackedWords().tracked.length;
+  const frequencyStats = getFrequencyStats();
 
-  return { words, trackedCount, currentLevel: level ?? null };
+  return { words, trackedCount, currentLevel: level ?? null, frequencyStats };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -51,7 +54,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function WordsRoute() {
-  const { words, trackedCount, currentLevel } = useLoaderData<typeof loader>();
+  const { words, trackedCount, currentLevel, frequencyStats } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   const levelTrackedCount = words.filter((w) => w.isTracked).length;
@@ -108,6 +111,8 @@ export default function WordsRoute() {
           </Form>
         </div>
       )}
+
+      <FrequencyCoverage stats={frequencyStats} />
 
       <WordList words={words} />
     </div>

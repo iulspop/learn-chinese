@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { HskWord, TrackedWords, WordWithTracking } from "./types";
+import type { HskWord, TrackedWords, WordWithTracking, FrequencyStats } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "app", "data");
 const COMPLETE_PATH = path.join(DATA_DIR, "complete.json");
@@ -18,6 +18,7 @@ export function getAllWords(): HskWord[] {
 
   const raw = JSON.parse(fs.readFileSync(COMPLETE_PATH, "utf-8")) as Array<{
     simplified: string;
+    frequency: number;
     level: string[];
     forms: Array<{
       transcriptions: { pinyin: string };
@@ -42,6 +43,7 @@ export function getAllWords(): HskWord[] {
       pinyin: form.transcriptions.pinyin,
       meaning: form.meanings.join("; "),
       hskLevel: newLevel,
+      frequency: entry.frequency,
     });
   }
 
@@ -103,4 +105,48 @@ export function getWordsWithTracking(level?: number): WordWithTracking[] {
     ...w,
     isTracked: tracked.has(w.id),
   }));
+}
+
+const BUCKET_SIZE = 500;
+const NUM_BUCKETS = 20; // covers frequency ranks 1-10000
+
+export function getFrequencyStats(): FrequencyStats {
+  const allWords = getAllWords();
+  const trackedSet = new Set(getTrackedWords().tracked);
+
+  const buckets = Array.from({ length: NUM_BUCKETS }, (_, i) => ({
+    rangeLabel: `${i * BUCKET_SIZE + 1}-${(i + 1) * BUCKET_SIZE}`,
+    min: i * BUCKET_SIZE + 1,
+    max: (i + 1) * BUCKET_SIZE,
+    hskCount: 0,
+    trackedCount: 0,
+  }));
+
+  let topNTotal = 0;
+  let topNTracked = 0;
+  const TOP_N = 5000;
+
+  for (const word of allWords) {
+    const freq = word.frequency;
+    const bucketIndex = Math.min(Math.floor((freq - 1) / BUCKET_SIZE), NUM_BUCKETS - 1);
+    if (bucketIndex >= 0 && bucketIndex < NUM_BUCKETS) {
+      buckets[bucketIndex].hskCount++;
+      if (trackedSet.has(word.id)) {
+        buckets[bucketIndex].trackedCount++;
+      }
+    }
+
+    if (freq <= TOP_N) {
+      topNTotal++;
+      if (trackedSet.has(word.id)) {
+        topNTracked++;
+      }
+    }
+  }
+
+  const coveragePercent = topNTotal > 0
+    ? Math.round((topNTracked / topNTotal) * 100)
+    : 0;
+
+  return { buckets, topNTotal, topNTracked, coveragePercent };
 }

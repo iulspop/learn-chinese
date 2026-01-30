@@ -206,3 +206,93 @@ body {
   border-color: #0369a1;
   color: #fff;
 }
+
+/* Frequency Coverage Chart */
+.freq-coverage {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.freq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.freq-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.freq-summary {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.freq-chart {
+  overflow-x: auto;
+}
+
+.freq-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.freq-bar-hsk {
+  fill: #dbeafe;
+}
+
+.freq-bar-tracked {
+  fill: #0369a1;
+}
+
+.freq-label {
+  font-size: 9px;
+  fill: #9ca3af;
+}
+
+.freq-axis-label {
+  font-size: 11px;
+  fill: #374151;
+  font-weight: 500;
+}
+
+.freq-gridline {
+  stroke: #e5e7eb;
+  stroke-width: 0.5;
+}
+
+.freq-legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-hsk {
+  background: #dbeafe;
+}
+
+.legend-tracked {
+  background: #0369a1;
+}
