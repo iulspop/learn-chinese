@@ -46,4 +46,5 @@ export interface WordIndexEntry {
 
 export interface WordWithTracking extends HskWord {
   isTracked: boolean;
+  hasIndex: boolean;
 }

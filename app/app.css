@@ -315,8 +315,13 @@ body {
   width: 50%;
 }
 
+.col-deck {
+  width: 6%;
+  text-align: center;
+}
+
 .col-level {
-  width: 8%;
+  width: 7%;
   text-align: center;
 }
 

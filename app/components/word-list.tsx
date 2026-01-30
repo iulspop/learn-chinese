@@ -40,6 +40,13 @@ const columns = [
     enableSorting: false,
     meta: { className: "col-meaning" },
   }),
+  columnHelper.accessor("hasIndex", {
+    id: "hasIndex",
+    header: "Deck",
+    cell: ({ getValue }) => (getValue() ? "✓" : "—"),
+    enableSorting: false,
+    meta: { className: "col-deck" },
+  }),
   columnHelper.accessor("hskLevel", {
     header: "HSK",
     meta: { className: "col-level" },
@@ -57,6 +64,7 @@ const columns = [
 const ROW_HEIGHT = 41;
 
 const TOGGLEABLE_COLUMNS: { id: string; label: string }[] = [
+  { id: "hasIndex", label: "Deck" },
   { id: "hskLevel", label: "HSK" },
   { id: "frequency", label: "Freq" },
   { id: "pinyin", label: "Pinyin" },

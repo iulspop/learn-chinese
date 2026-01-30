@@ -100,11 +100,13 @@ export function untrackAllInLevel(level: number): void {
 export function getWordsWithTracking(level?: number): WordWithTracking[] {
   const allWords = getAllWords();
   const tracked = new Set(getTrackedWords().tracked);
+  const wordIndex = getWordIndex();
   const filtered = level ? allWords.filter((w) => w.hskLevel === level) : allWords;
 
   return filtered.map((w) => ({
     ...w,
     isTracked: tracked.has(w.id),
+    hasIndex: w.id in wordIndex,
   }));
 }
 
