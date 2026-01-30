@@ -125,6 +125,18 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+  table-layout: fixed;
+}
+
+.word-table tbody {
+  display: block;
+}
+
+.word-table thead,
+.word-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
 
 .word-table thead {

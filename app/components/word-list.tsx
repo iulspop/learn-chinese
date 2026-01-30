@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -7,6 +7,7 @@ import {
   createColumnHelper,
   type SortingState,
 } from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import type { WordWithTracking } from "~/lib/types";
 import { TrackCell } from "./word-list-item";
@@ -49,8 +50,11 @@ const columns = [
   }),
 ];
 
+const ROW_HEIGHT = 41;
+
 export function WordList({ words }: { words: WordWithTracking[] }) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const table = useReactTable({
     data: words,
@@ -61,8 +65,17 @@ export function WordList({ words }: { words: WordWithTracking[] }) {
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const { rows } = table.getRowModel();
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 20,
+  });
+
   return (
-    <div className="word-list-container">
+    <div className="word-list-container" ref={scrollRef}>
       <table className="word-table">
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -105,13 +118,27 @@ export function WordList({ words }: { words: WordWithTracking[] }) {
             </tr>
           ))}
         </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row) => {
+        <tbody
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            position: "relative",
+          }}
+        >
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const row = rows[virtualRow.index];
             const word = row.original;
             return (
               <tr
                 key={row.id}
                 className={word.isTracked ? "tracked" : ""}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
               >
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta as
