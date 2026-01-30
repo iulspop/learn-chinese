@@ -11,7 +11,8 @@ import {
 import { WordList } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
 
-const HSK_LEVELS = [1, 2, 3, 4, 5, 6] as const;
+const HSK_LEVELS = [1, 2, 3, 4, 5, 6, 7] as const;
+const HSK_LEVEL_LABELS: Record<number, string> = { 7: "7-9" };
 
 export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
@@ -20,7 +21,7 @@ export function loader({ request }: Route.LoaderArgs) {
 
   const words = getWordsWithTracking(level);
   const trackedCount = getTrackedWords().tracked.length;
-  const frequencyStats = getFrequencyStats();
+  const frequencyStats = getFrequencyStats(level);
 
   return { words, trackedCount, currentLevel: level ?? null, frequencyStats };
 }
@@ -88,7 +89,7 @@ export default function WordsRoute() {
             href={`/words?level=${level}`}
             className={`level-tab ${currentLevel === level ? "active" : ""}`}
           >
-            HSK {level}
+            HSK {HSK_LEVEL_LABELS[level] ?? level}
           </a>
         ))}
       </nav>
@@ -96,7 +97,7 @@ export default function WordsRoute() {
       {currentLevel !== null && (
         <div className="level-actions">
           <span>
-            {levelTrackedCount} / {words.length} tracked in HSK {currentLevel}
+            {levelTrackedCount} / {words.length} tracked in HSK {HSK_LEVEL_LABELS[currentLevel] ?? currentLevel}
           </span>
           <Form method="post">
             <input
@@ -106,13 +107,13 @@ export default function WordsRoute() {
             />
             <input type="hidden" name="level" value={currentLevel} />
             <button type="submit" className="bulk-btn">
-              {allLevelTracked ? "Untrack All" : "Track All"} HSK {currentLevel}
+              {allLevelTracked ? "Untrack All" : "Track All"} HSK {HSK_LEVEL_LABELS[currentLevel] ?? currentLevel}
             </button>
           </Form>
         </div>
       )}
 
-      <FrequencyCoverage stats={frequencyStats} />
+      <FrequencyCoverage stats={frequencyStats} isHsk7={currentLevel === 7} />
 
       <WordList words={words} />
     </div>

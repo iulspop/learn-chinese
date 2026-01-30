@@ -106,7 +106,7 @@ def load_words():
         new_level = None
         for lv in entry.get("level", []):
             parsed = parse_level(lv)
-            if parsed is not None and parsed <= 6:
+            if parsed is not None:
                 new_level = parsed
                 break
         if new_level is None:

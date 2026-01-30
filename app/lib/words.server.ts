@@ -32,7 +32,7 @@ export function getAllWords(): HskWord[] {
     const newLevel = entry.level
       .map(parseLevel)
       .find((l): l is number => l !== null);
-    if (newLevel == null || newLevel > 6) continue;
+    if (newLevel == null) continue;
 
     const form = entry.forms[0];
     if (!form) continue;
@@ -110,9 +110,14 @@ export function getWordsWithTracking(level?: number): WordWithTracking[] {
 const BUCKET_SIZE = 500;
 const NUM_BUCKETS = 20; // covers frequency ranks 1-10000
 
-export function getFrequencyStats(): FrequencyStats {
+export function getFrequencyStats(level?: number): FrequencyStats {
   const allWords = getAllWords();
   const trackedSet = new Set(getTrackedWords().tracked);
+
+  // HSK 7 tab: show only level 7 words. Otherwise: show only HSK 1-6.
+  const filtered = level === 7
+    ? allWords.filter((w) => w.hskLevel === 7)
+    : allWords.filter((w) => w.hskLevel <= 6);
 
   const buckets = Array.from({ length: NUM_BUCKETS }, (_, i) => ({
     rangeLabel: `${i * BUCKET_SIZE + 1}-${(i + 1) * BUCKET_SIZE}`,
@@ -122,11 +127,15 @@ export function getFrequencyStats(): FrequencyStats {
     trackedCount: 0,
   }));
 
+  let totalTracked = 0;
   let topNTotal = 0;
   let topNTracked = 0;
   const TOP_N = 5000;
 
-  for (const word of allWords) {
+  for (const word of filtered) {
+    if (trackedSet.has(word.id)) {
+      totalTracked++;
+    }
     const freq = word.frequency;
     const bucketIndex = Math.min(Math.floor((freq - 1) / BUCKET_SIZE), NUM_BUCKETS - 1);
     if (bucketIndex >= 0 && bucketIndex < NUM_BUCKETS) {
@@ -148,5 +157,5 @@ export function getFrequencyStats(): FrequencyStats {
     ? Math.round((topNTracked / topNTotal) * 100)
     : 0;
 
-  return { buckets, topNTotal, topNTracked, coveragePercent };
+  return { buckets, totalWords: filtered.length, totalTracked, topNTotal, topNTracked, coveragePercent };
 }

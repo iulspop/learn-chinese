@@ -17,6 +17,8 @@ export interface FrequencyBucket {
 
 export interface FrequencyStats {
   buckets: FrequencyBucket[];
+  totalWords: number;
+  totalTracked: number;
   topNTotal: number;
   topNTracked: number;
   coveragePercent: number;
