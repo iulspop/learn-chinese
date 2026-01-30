@@ -1,9 +1,55 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useLoaderData } from "react-router";
 import type { Route } from "./+types/export";
 import { getWordsWithTracking, getWordIndex } from "~/lib/words.server";
 import { Toast, type ToastData } from "~/components/toast";
 import type { WordWithTracking, WordIndexEntry } from "~/lib/types";
+
+function AudioButton({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  const handleClick = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      audio.currentTime = 0;
+      setPlaying(false);
+    } else {
+      audio.play();
+      setPlaying(true);
+    }
+  };
+
+  return (
+    <>
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="none"
+        onEnded={() => setPlaying(false)}
+      />
+      <button
+        type="button"
+        className="rc-audio-btn"
+        onClick={handleClick}
+        aria-label="Play audio"
+      >
+        {playing ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+            <rect x="6" y="4" width="4" height="16" rx="1" />
+            <rect x="14" y="4" width="4" height="16" rx="1" />
+          </svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        )}
+      </button>
+    </>
+  );
+}
 
 interface CardTemplate {
   id: string;
@@ -30,6 +76,14 @@ function SentenceBlockBack({ idx }: { idx?: WordIndexEntry }) {
           )}
           {idx.sentenceMeaning && (
             <div className="rc-meaning-sen">{idx.sentenceMeaning}</div>
+          )}
+          {(idx.audio || idx.sentenceAudio) && (
+            <div className="rc-audio-row">
+              {idx.audio && <AudioButton src={`/media/${idx.audio}`} />}
+              {idx.sentenceAudio && (
+                <AudioButton src={`/media/${idx.sentenceAudio}`} />
+              )}
+            </div>
           )}
           {idx.sentenceImage && (
             <div className="rc-image">
