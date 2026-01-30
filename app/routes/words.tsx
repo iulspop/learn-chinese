@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { useLoaderData, useSearchParams, Form } from "react-router";
 import type { Route } from "./+types/words";
 import {
@@ -10,6 +11,7 @@ import {
 } from "~/lib/words.server";
 import { WordList } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
+import { Toast, type ToastData } from "~/components/toast";
 
 const HSK_LEVELS = [1, 2, 3, 4, 5, 6, 7] as const;
 const HSK_LEVEL_LABELS: Record<number, string> = { 7: "7-9" };
@@ -39,16 +41,6 @@ export async function action({ request }: Route.ActionArgs) {
   } else if (intent === "untrackAllLevel") {
     const level = parseInt(formData.get("level") as string, 10);
     untrackAllInLevel(level);
-  } else if (intent === "exportAnki") {
-    try {
-      const res = await fetch("http://localhost:5001/export-anki", {
-        method: "POST",
-      });
-      const data = await res.json();
-      return { exportResult: data };
-    } catch {
-      return { exportResult: { error: "Failed to connect to Python server" } };
-    }
   }
 
   return null;
@@ -57,6 +49,33 @@ export async function action({ request }: Route.ActionArgs) {
 export default function WordsRoute() {
   const { words, trackedCount, currentLevel, frequencyStats } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
+  const [toast, setToast] = useState<ToastData | null>(null);
+
+  const handleExport = useCallback(async () => {
+    setToast({ type: "pending", message: "Exporting Anki deck..." });
+    try {
+      const res = await fetch("http://localhost:5001/export-anki", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setToast({ type: "error", message: data.error || "Export failed" });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hsk-vocabulary.apkg";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setToast({ type: "success", message: "Anki deck downloaded!" });
+    } catch {
+      setToast({ type: "error", message: "Failed to connect to export server" });
+    }
+  }, []);
 
   const levelTrackedCount = words.filter((w) => w.isTracked).length;
   const allLevelTracked = words.length > 0 && levelTrackedCount === words.length;
@@ -67,12 +86,14 @@ export default function WordsRoute() {
         <h1>HSK Vocabulary</h1>
         <div className="header-info">
           <span className="tracked-badge">{trackedCount} words tracked</span>
-          <Form method="post">
-            <input type="hidden" name="intent" value="exportAnki" />
-            <button type="submit" className="export-btn">
-              Export to Anki
-            </button>
-          </Form>
+          <button
+            type="button"
+            className="export-btn"
+            onClick={handleExport}
+            disabled={toast?.type === "pending"}
+          >
+            Export to Anki
+          </button>
         </div>
       </header>
 
@@ -116,6 +137,8 @@ export default function WordsRoute() {
       <FrequencyCoverage stats={frequencyStats} isHsk7={currentLevel === 7} />
 
       <WordList words={words} />
+
+      {toast && <Toast {...toast} onDismiss={() => setToast(null)} />}
     </div>
   );
 }

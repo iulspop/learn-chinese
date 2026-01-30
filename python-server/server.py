@@ -2,9 +2,11 @@ import json
 import os
 import hashlib
 import genanki
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_file
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COMPLETE_PATH = os.path.join(BASE_DIR, "app", "data", "complete.json")
@@ -164,13 +166,12 @@ def export_anki():
         os.makedirs(OUTPUT_DIR, exist_ok=True)
         genanki.Package(deck).write_to_file(OUTPUT_PATH)
 
-        return jsonify({
-            "success": True,
-            "path": OUTPUT_PATH,
-            "word_count": len(tracked_words),
-            "mode": mode,
-            "cards_per_word": 3 if is_beginner else 1,
-        })
+        return send_file(
+            OUTPUT_PATH,
+            as_attachment=True,
+            download_name="hsk-vocabulary.apkg",
+            mimetype="application/octet-stream",
+        )
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
