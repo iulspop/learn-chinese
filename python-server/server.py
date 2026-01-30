@@ -61,6 +61,7 @@ div {
   transition: opacity 0.5s ease;
   height: 140px;
   padding-top: 0px;
+  pointer-events: none;
 }
 .hanzi.whover:hover::before {
   opacity: 1;
