@@ -53,7 +53,9 @@ const columns = [
 const ROW_HEIGHT = 41;
 
 export function WordList({ words }: { words: WordWithTracking[] }) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "frequency", desc: false },
+  ]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const table = useReactTable({

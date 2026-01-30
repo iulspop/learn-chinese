@@ -3,11 +3,12 @@ import type { FrequencyStats } from "~/lib/types";
 export function FrequencyCoverage({ stats }: { stats: FrequencyStats }) {
   const maxCount = Math.max(...stats.buckets.map((b) => b.hskCount), 1);
   const chartHeight = 160;
+  const topMargin = 14;
   const leftMargin = 50;
   const bottomMargin = 40;
   const chartWidth = stats.buckets.length * 32;
   const totalWidth = leftMargin + chartWidth;
-  const totalHeight = chartHeight + bottomMargin;
+  const totalHeight = topMargin + chartHeight + bottomMargin;
 
   // Y-axis tick values
   const yTicks = [0, Math.round(maxCount / 2), maxCount];
@@ -23,6 +24,7 @@ export function FrequencyCoverage({ stats }: { stats: FrequencyStats }) {
       </div>
       <div className="freq-chart">
         <svg viewBox={`0 0 ${totalWidth} ${totalHeight}`} className="freq-svg">
+          <g transform={`translate(0, ${topMargin})`}>
           {/* Y-axis label */}
           <text
             x={12}
@@ -104,6 +106,7 @@ export function FrequencyCoverage({ stats }: { stats: FrequencyStats }) {
           >
             Word frequency rank (1 = most common)
           </text>
+          </g>
         </svg>
       </div>
       <div className="freq-legend">
