@@ -3,13 +3,14 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  getFilteredRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUp, ArrowDown, ArrowUpDown, Settings2 } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { Checkbox } from "@base-ui/react/checkbox";
 import type { WordWithTracking } from "~/lib/types";
@@ -66,6 +67,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
     { id: "frequency", desc: false },
   ]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility);
+  const [globalFilter, setGlobalFilter] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleColumnVisibilityChange = (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
@@ -79,10 +81,21 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
   const table = useReactTable({
     data: words,
     columns,
-    state: { sorting, columnVisibility },
+    state: { sorting, columnVisibility, globalFilter },
     onSortingChange: setSorting,
     onColumnVisibilityChange: handleColumnVisibilityChange,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, _columnId, filterValue: string) => {
+      const q = filterValue.toLowerCase();
+      const w = row.original;
+      return (
+        w.character.includes(q) ||
+        w.pinyin.toLowerCase().includes(q) ||
+        w.meaning.toLowerCase().includes(q)
+      );
+    },
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
 
@@ -99,6 +112,16 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
   return (
     <>
     <div className="table-toolbar">
+      <div className="search-box">
+        <Search size={14} className="search-icon" />
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search words..."
+          value={globalFilter}
+          onChange={(e) => setGlobalFilter(e.target.value)}
+        />
+      </div>
       <Popover.Root>
         <Popover.Trigger className="columns-pill">
           <Settings2 size={14} />
