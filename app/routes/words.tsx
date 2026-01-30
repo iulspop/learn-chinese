@@ -14,6 +14,17 @@ import { FrequencyCoverage } from "~/components/frequency-coverage";
 const HSK_LEVELS = [1, 2, 3, 4, 5, 6, 7] as const;
 const HSK_LEVEL_LABELS: Record<number, string> = { 7: "7-9" };
 
+function parseColumnVisibility(cookieHeader: string | null): Record<string, boolean> {
+  if (!cookieHeader) return {};
+  const match = cookieHeader.match(/(?:^|;\s*)col-visibility=([^;]*)/);
+  if (!match) return {};
+  try {
+    return JSON.parse(decodeURIComponent(match[1]));
+  } catch {
+    return {};
+  }
+}
+
 export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const levelParam = url.searchParams.get("level");
@@ -22,8 +33,9 @@ export function loader({ request }: Route.LoaderArgs) {
   const words = getWordsWithTracking(level);
   const trackedCount = getTrackedWords().tracked.length;
   const frequencyStats = getFrequencyStats(level);
+  const columnVisibility = parseColumnVisibility(request.headers.get("cookie"));
 
-  return { words, trackedCount, currentLevel: level ?? null, frequencyStats };
+  return { words, trackedCount, currentLevel: level ?? null, frequencyStats, columnVisibility };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -45,7 +57,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function WordsRoute() {
-  const { words, trackedCount, currentLevel, frequencyStats } = useLoaderData<typeof loader>();
+  const { words, trackedCount, currentLevel, frequencyStats, columnVisibility } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   const levelTrackedCount = words.filter((w) => w.isTracked).length;
@@ -102,7 +114,7 @@ export default function WordsRoute() {
 
       <FrequencyCoverage stats={frequencyStats} isHsk7={currentLevel === 7} />
 
-      <WordList words={words} />
+      <WordList words={words} initialColumnVisibility={columnVisibility} />
     </div>
   );
 }

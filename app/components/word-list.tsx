@@ -6,9 +6,12 @@ import {
   flexRender,
   createColumnHelper,
   type SortingState,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Settings2 } from "lucide-react";
+import { Popover } from "@base-ui/react/popover";
+import { Checkbox } from "@base-ui/react/checkbox";
 import type { WordWithTracking } from "~/lib/types";
 import { TrackCell } from "./word-list-item";
 
@@ -52,17 +55,33 @@ const columns = [
 
 const ROW_HEIGHT = 41;
 
-export function WordList({ words }: { words: WordWithTracking[] }) {
+const TOGGLEABLE_COLUMNS: { id: string; label: string }[] = [
+  { id: "hskLevel", label: "HSK" },
+  { id: "frequency", label: "Freq" },
+  { id: "pinyin", label: "Pinyin" },
+];
+
+export function WordList({ words, initialColumnVisibility = {} }: { words: WordWithTracking[]; initialColumnVisibility?: VisibilityState }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "frequency", desc: false },
   ]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleColumnVisibilityChange = (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
+    setColumnVisibility((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      document.cookie = `col-visibility=${JSON.stringify(next)};path=/;max-age=${60 * 60 * 24 * 365}`;
+      return next;
+    });
+  };
 
   const table = useReactTable({
     data: words,
     columns,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -78,6 +97,41 @@ export function WordList({ words }: { words: WordWithTracking[] }) {
   });
 
   return (
+    <>
+    <div className="table-toolbar">
+      <Popover.Root>
+        <Popover.Trigger className="columns-pill">
+          <Settings2 size={14} />
+          Columns
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Positioner side="bottom" align="center" sideOffset={4} className="columns-positioner">
+            <Popover.Popup className="columns-popup">
+              {TOGGLEABLE_COLUMNS.map((col) => {
+                const column = table.getColumn(col.id);
+                if (!column) return null;
+                return (
+                  <label key={col.id} className="columns-item">
+                    <Checkbox.Root
+                      className="columns-checkbox"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(checked) =>
+                        column.toggleVisibility(!!checked)
+                      }
+                    >
+                      <Checkbox.Indicator className="columns-checkbox-indicator">
+                        &#10003;
+                      </Checkbox.Indicator>
+                    </Checkbox.Root>
+                    {col.label}
+                  </label>
+                );
+              })}
+            </Popover.Popup>
+          </Popover.Positioner>
+        </Popover.Portal>
+      </Popover.Root>
+    </div>
     <div className="word-list-container" ref={scrollRef}>
       <table className="word-table">
         <thead>
@@ -163,5 +217,6 @@ export function WordList({ words }: { words: WordWithTracking[] }) {
         </tbody>
       </table>
     </div>
+    </>
   );
 }
