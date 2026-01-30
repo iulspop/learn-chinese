@@ -22,6 +22,8 @@ export interface FrequencyStats {
   topNTotal: number;
   topNTracked: number;
   coveragePercent: number;
+  levelWords?: number;
+  levelTracked?: number;
 }
 
 export interface TrackedWords {

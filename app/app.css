@@ -414,3 +414,154 @@ body {
 .toast-close:hover {
   opacity: 1;
 }
+
+/* Export Preview Page */
+.export-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.export-header {
+  margin-bottom: 1.5rem;
+}
+
+.back-link {
+  font-size: 0.875rem;
+  color: #0369a1;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.export-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0 0;
+}
+
+.export-summary {
+  font-size: 0.9rem;
+  color: #374151;
+  margin-bottom: 2rem;
+}
+
+.export-summary p {
+  margin: 0;
+}
+
+.export-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6b7280;
+}
+
+.card-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.card-template-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  background: #fafafa;
+}
+
+.template-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem;
+}
+
+.card-preview-row {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.card-preview {
+  flex: 1;
+}
+
+.card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+}
+
+/* Anki card rendering */
+.anki-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.anki-card hr {
+  width: 100%;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 0.75rem 0;
+}
+
+.anki-character {
+  font-size: 48px;
+  margin-bottom: 0.5rem;
+}
+
+.anki-pinyin {
+  font-size: 24px;
+  color: #0369a1;
+  margin-bottom: 0.5rem;
+}
+
+.anki-meaning {
+  font-size: 20px;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.anki-hsk {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.export-action {
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.export-confirm-btn {
+  background: #0369a1;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.export-confirm-btn:hover {
+  background: #075985;
+}
+
+.export-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
