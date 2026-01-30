@@ -572,6 +572,37 @@ body {
   color: #6b7280;
 }
 
+.export-config {
+  margin-bottom: 1.5rem;
+}
+
+.export-config-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.template-toggles {
+  display: flex;
+  gap: 1rem;
+}
+
+.template-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.template-toggle input[type="checkbox"] {
+  accent-color: #0369a1;
+}
+
 .card-templates {
   display: flex;
   flex-direction: column;

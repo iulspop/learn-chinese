@@ -3,7 +3,7 @@ import os
 import hashlib
 import glob
 import genanki
-from flask import Flask, jsonify, send_file
+from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -152,68 +152,79 @@ SENTENCE_BLOCK_BACK = (
     "{{#SentenceImage}}<div class=\"image\">{{SentenceImage}}</div>{{/SentenceImage}}"
 )
 
-HSK_MODEL = genanki.Model(
-    MODEL_ID,
-    "HSK Vocabulary",
-    fields=[
-        {"name": "Character"},
-        {"name": "Pinyin"},
-        {"name": "Meaning"},
-        {"name": "HSKLevel"},
-        {"name": "PartOfSpeech"},
-        {"name": "Audio"},
-        {"name": "SentenceSimplified"},
-        {"name": "SentencePinyin"},
-        {"name": "SentenceMeaning"},
-        {"name": "SentenceAudio"},
-        {"name": "SentenceImage"},
-    ],
-    templates=[
-        {
-            "name": "Pinyin \u2192 Meaning",
-            "qfmt": (
-                '<div class="pinyin">{{Pinyin}}</div>'
-                "{{#PartOfSpeech}}"
-                '<div class="description">{{PartOfSpeech}}</div>'
-                "{{/PartOfSpeech}}"
-                "<hr>"
-                + SENTENCE_BLOCK_FRONT
-            ),
-            "afmt": (
-                '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
-                '<div class="pinyin">{{Pinyin}}</div>'
-                '<div class="english">{{Meaning}}</div>'
-                "{{#PartOfSpeech}}"
-                '<div class="description">{{PartOfSpeech}}</div>'
-                "{{/PartOfSpeech}}"
-                "<hr>"
-                + SENTENCE_BLOCK_BACK
-            ),
-        },
-        {
-            "name": "Character \u2192 Meaning",
-            "qfmt": (
-                '<div lang="zh-Hans" class="hanzi whover" style="--pinyin: \'{{Pinyin}}\'">{{Character}}</div>'
-                '<div class="pinyin"><br></div>'
-                '<div class="english"><br></div>'
-                '<div class="description"><br></div>'
-                "<hr>"
-                + SENTENCE_BLOCK_FRONT
-            ),
-            "afmt": (
-                '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
-                '<div class="pinyin">{{Pinyin}}</div>'
-                '<div class="english">{{Meaning}}</div>'
-                "{{#PartOfSpeech}}"
-                '<div class="description">{{PartOfSpeech}}</div>'
-                "{{/PartOfSpeech}}"
-                "<hr>"
-                + SENTENCE_BLOCK_BACK
-            ),
-        },
-    ],
-    css=CARD_CSS,
-)
+HSK_FIELDS = [
+    {"name": "Character"},
+    {"name": "Pinyin"},
+    {"name": "Meaning"},
+    {"name": "HSKLevel"},
+    {"name": "PartOfSpeech"},
+    {"name": "Audio"},
+    {"name": "SentenceSimplified"},
+    {"name": "SentencePinyin"},
+    {"name": "SentenceMeaning"},
+    {"name": "SentenceAudio"},
+    {"name": "SentenceImage"},
+]
+
+ALL_TEMPLATES = {
+    "pinyin-meaning": {
+        "name": "Pinyin \u2192 Meaning",
+        "qfmt": (
+            '<div class="pinyin">{{Pinyin}}</div>'
+            "{{#PartOfSpeech}}"
+            '<div class="description">{{PartOfSpeech}}</div>'
+            "{{/PartOfSpeech}}"
+            "<hr>"
+            + SENTENCE_BLOCK_FRONT
+        ),
+        "afmt": (
+            '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
+            '<div class="pinyin">{{Pinyin}}</div>'
+            '<div class="english">{{Meaning}}</div>'
+            "{{#PartOfSpeech}}"
+            '<div class="description">{{PartOfSpeech}}</div>'
+            "{{/PartOfSpeech}}"
+            "<hr>"
+            + SENTENCE_BLOCK_BACK
+        ),
+    },
+    "character-meaning": {
+        "name": "Character \u2192 Meaning",
+        "qfmt": (
+            '<div lang="zh-Hans" class="hanzi whover" style="--pinyin: \'{{Pinyin}}\'">{{Character}}</div>'
+            '<div class="pinyin"><br></div>'
+            '<div class="english"><br></div>'
+            '<div class="description"><br></div>'
+            "<hr>"
+            + SENTENCE_BLOCK_FRONT
+        ),
+        "afmt": (
+            '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
+            '<div class="pinyin">{{Pinyin}}</div>'
+            '<div class="english">{{Meaning}}</div>'
+            "{{#PartOfSpeech}}"
+            '<div class="description">{{PartOfSpeech}}</div>'
+            "{{/PartOfSpeech}}"
+            "<hr>"
+            + SENTENCE_BLOCK_BACK
+        ),
+    },
+}
+
+
+def build_model(template_ids=None):
+    if template_ids is None:
+        template_ids = list(ALL_TEMPLATES.keys())
+    templates = [ALL_TEMPLATES[tid] for tid in template_ids if tid in ALL_TEMPLATES]
+    if not templates:
+        templates = list(ALL_TEMPLATES.values())
+    return genanki.Model(
+        MODEL_ID,
+        "HSK Vocabulary",
+        fields=HSK_FIELDS,
+        templates=templates,
+        css=CARD_CSS,
+    )
 
 DECK_ID = 2059400110
 
@@ -278,6 +289,11 @@ def load_word_index():
 @app.route("/export-anki", methods=["POST"])
 def export_anki():
     try:
+        body = request.get_json(silent=True) or {}
+        template_ids = body.get("templates")
+
+        model = build_model(template_ids)
+
         all_words = load_words()
         tracked_ids = load_tracked()
         tracked_words = [all_words[wid] for wid in tracked_ids if wid in all_words]
@@ -304,7 +320,7 @@ def export_anki():
                         media_files.append(f_path)
 
             note = genanki.Note(
-                model=HSK_MODEL,
+                model=model,
                 fields=[
                     word["character"],
                     word["pinyin"],

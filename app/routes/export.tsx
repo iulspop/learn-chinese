@@ -6,6 +6,7 @@ import { Toast, type ToastData } from "~/components/toast";
 import type { WordWithTracking, WordIndexEntry } from "~/lib/types";
 
 interface CardTemplate {
+  id: string;
   name: string;
   front: (w: WordWithTracking, idx?: WordIndexEntry) => React.ReactNode;
   back: (w: WordWithTracking, idx?: WordIndexEntry) => React.ReactNode;
@@ -45,6 +46,7 @@ function SentenceBlockBack({ idx }: { idx?: WordIndexEntry }) {
 
 const TEMPLATES: CardTemplate[] = [
   {
+    id: "pinyin-meaning",
     name: "Pinyin → Meaning",
     front: (w, idx) => (
       <>
@@ -70,6 +72,7 @@ const TEMPLATES: CardTemplate[] = [
     ),
   },
   {
+    id: "character-meaning",
     name: "Character → Meaning",
     front: (w, idx) => (
       <>
@@ -98,31 +101,46 @@ export function loader() {
   const trackedWords = allWords.filter((w) => w.isTracked);
   const wordIndex = getWordIndex();
 
-  // Pick a sample word that has index data for a richer preview
   const sampleWord =
     trackedWords.find((w) => wordIndex[w.character]?.sentence) ??
     trackedWords[0];
   const sampleIndex = sampleWord ? wordIndex[sampleWord.character] : undefined;
 
-  return {
-    trackedWords,
-    sampleWord,
-    sampleIndex,
-    cardsPerWord: 2,
-    totalCards: trackedWords.length * 2,
-  };
+  return { trackedWords, sampleWord, sampleIndex };
 }
 
 export default function ExportRoute() {
-  const { trackedWords, sampleWord, sampleIndex, cardsPerWord, totalCards } =
+  const { trackedWords, sampleWord, sampleIndex } =
     useLoaderData<typeof loader>();
   const [toast, setToast] = useState<ToastData | null>(null);
+  const [enabledTemplates, setEnabledTemplates] = useState<
+    Record<string, boolean>
+  >(() =>
+    Object.fromEntries(TEMPLATES.map((t) => [t.id, true]))
+  );
+
+  const selectedCount = Object.values(enabledTemplates).filter(Boolean).length;
+  const totalCards = trackedWords.length * selectedCount;
+
+  const toggleTemplate = (id: string) => {
+    setEnabledTemplates((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      // Prevent deselecting all
+      if (Object.values(next).every((v) => !v)) return prev;
+      return next;
+    });
+  };
 
   const handleExport = useCallback(async () => {
     setToast({ type: "pending", message: "Exporting Anki deck..." });
     try {
+      const selected = Object.entries(enabledTemplates)
+        .filter(([, v]) => v)
+        .map(([k]) => k);
       const res = await fetch("http://localhost:5001/export-anki", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templates: selected }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -145,7 +163,9 @@ export default function ExportRoute() {
         message: "Failed to connect to export server",
       });
     }
-  }, []);
+  }, [enabledTemplates]);
+
+  const activeTemplates = TEMPLATES.filter((t) => enabledTemplates[t.id]);
 
   return (
     <div className="export-page">
@@ -153,16 +173,8 @@ export default function ExportRoute() {
         <a href="/words" className="back-link">
           &larr; Back to vocabulary
         </a>
-        <h1>Export Preview</h1>
+        <h1>Export to Anki</h1>
       </header>
-
-      <div className="export-summary">
-        <p>
-          <strong>{trackedWords.length}</strong> words tracked &middot;{" "}
-          {cardsPerWord} cards per word &middot;{" "}
-          <strong>{totalCards}</strong> total cards
-        </p>
-      </div>
 
       {trackedWords.length === 0 ? (
         <div className="export-empty">
@@ -170,18 +182,46 @@ export default function ExportRoute() {
         </div>
       ) : (
         <>
+          <div className="export-config">
+            <h2 className="export-config-title">Card Types</h2>
+            <div className="template-toggles">
+              {TEMPLATES.map((template) => (
+                <label key={template.id} className="template-toggle">
+                  <input
+                    type="checkbox"
+                    checked={enabledTemplates[template.id]}
+                    onChange={() => toggleTemplate(template.id)}
+                  />
+                  {template.name}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="export-summary">
+            <p>
+              <strong>{trackedWords.length}</strong> words &middot;{" "}
+              {selectedCount} card {selectedCount === 1 ? "type" : "types"}{" "}
+              &middot; <strong>{totalCards}</strong> total cards
+            </p>
+          </div>
+
           <div className="card-templates">
-            {TEMPLATES.map((template) => (
-              <div key={template.name} className="card-template-section">
+            {activeTemplates.map((template) => (
+              <div key={template.id} className="card-template-section">
                 <h2 className="template-name">{template.name}</h2>
                 <div className="card-preview-row">
                   <div className="card-preview">
                     <div className="card-label">Front</div>
-                    <div className="anki-card">{template.front(sampleWord, sampleIndex)}</div>
+                    <div className="anki-card">
+                      {template.front(sampleWord, sampleIndex)}
+                    </div>
                   </div>
                   <div className="card-preview">
                     <div className="card-label">Back</div>
-                    <div className="anki-card">{template.back(sampleWord, sampleIndex)}</div>
+                    <div className="anki-card">
+                      {template.back(sampleWord, sampleIndex)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -197,7 +237,7 @@ export default function ExportRoute() {
             >
               {toast?.type === "pending"
                 ? "Exporting..."
-                : "Confirm & Download"}
+                : "Download .apkg"}
             </button>
           </div>
         </>
