@@ -125,7 +125,6 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
-  table-layout: fixed;
 }
 
 .word-table tbody {
@@ -136,7 +135,6 @@ body {
 .word-table tbody tr {
   display: table;
   width: 100%;
-  table-layout: fixed;
 }
 
 .word-table thead {
@@ -148,13 +146,18 @@ body {
 
 .word-table th {
   text-align: left;
-  padding: 0.6rem 0.75rem;
+  padding: 0.85rem 0.75rem;
   font-weight: 600;
   color: #374151;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.word-table th:last-child {
+  border-right: none;
 }
 
 .th-content {
@@ -186,26 +189,30 @@ body {
 }
 
 .col-track {
-  width: 50px;
+  width: 5%;
   text-align: center;
 }
 
 .col-character {
-  width: 100px;
+  width: 10%;
   font-size: 1.1rem;
 }
 
 .col-pinyin {
-  width: 150px;
+  width: 15%;
+}
+
+.col-meaning {
+  width: 50%;
 }
 
 .col-level {
-  width: 50px;
+  width: 8%;
   text-align: center;
 }
 
 .col-freq {
-  width: 70px;
+  width: 7%;
   text-align: right;
 }
 

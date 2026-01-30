@@ -72,6 +72,7 @@ export function WordList({ words }: { words: WordWithTracking[] }) {
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 20,
+    measureElement: (el) => el.getBoundingClientRect().height,
   });
 
   return (
@@ -130,13 +131,14 @@ export function WordList({ words }: { words: WordWithTracking[] }) {
             return (
               <tr
                 key={row.id}
+                ref={virtualizer.measureElement}
+                data-index={virtualRow.index}
                 className={word.isTracked ? "tracked" : ""}
                 style={{
                   position: "absolute",
                   top: 0,
                   left: 0,
                   width: "100%",
-                  height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
