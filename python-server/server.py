@@ -14,28 +14,101 @@ TRACKED_PATH = os.path.join(BASE_DIR, "app", "data", "tracked-words.json")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, "hsk-vocabulary.apkg")
 
-# Stable model IDs (hardcoded so reimport preserves review progress)
-BEGINNER_MODEL_ID = 1607392319
-ADVANCED_MODEL_ID = 1607392320
+MODEL_ID = 1607392319
 
 CARD_CSS = """\
-.card {
-  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-  text-align: center;
-  font-size: 20px;
-  color: #1a1a1a;
-  background: #fff;
-  padding: 2rem;
+hr {
+  height: 3px;
+  background: white;
+  border: none;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
-.character { font-size: 48px; margin-bottom: 0.5rem; }
-.pinyin { font-size: 24px; color: #0369a1; margin-bottom: 0.5rem; }
-.meaning { font-size: 20px; color: #374151; }
-.hsk-level { font-size: 14px; color: #9ca3af; margin-top: 1rem; }
+div {
+  margin-bottom: 10px;
+}
+.card {
+  font-family: Georgia;
+  font-size: 10px;
+  text-align: left;
+  background-color: rgb(47, 47, 49);
+  color: #fff;
+  padding: 20px;
+}
+.recall-prompt {
+  font-family: Didot;
+  font-size: 13px;
+  color: #575757;
+  margin-bottom: 15px;
+}
+.hanzi {
+  font-family: Kai;
+  font-size: 78px;
+  margin-top: 20px;
+}
+.hanzi.whover {
+  cursor: pointer;
+}
+.hanzi.whover::before {
+  font-family: Palatino;
+  content: var(--pinyin);
+  position: absolute;
+  font-size: 22px;
+  color: #55DD55;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 5px;
+  border-left: 3px solid white;
+  transform: translate(-10px, -40px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  height: 140px;
+  padding-top: 0px;
+}
+.hanzi.whover:hover::before {
+  opacity: 1;
+}
+.pinyin {
+  font-family: Palatino;
+  font-size: 22px;
+  color: #55DD55;
+}
+.english {
+  font-family: Didot;
+  font-size: 16px;
+}
+.description {
+  font-family: Didot;
+  font-size: 16px;
+  color: #575757;
+}
+.sentence {
+  font-family: Kai;
+  font-size: 30px;
+  text-align: left;
+}
+.pinyinSen {
+  font-family: Palatino;
+  font-size: 20px;
+  color: #55DD55;
+  text-align: left;
+}
+.meaningSent {
+  font-family: Didot;
+  font-size: 16px;
+  text-align: left;
+}
+.stub {
+  font-family: Didot;
+  font-size: 14px;
+  color: #575757;
+  font-style: italic;
+}
 """
 
-BEGINNER_MODEL = genanki.Model(
-    BEGINNER_MODEL_ID,
-    "HSK Vocabulary (Beginner)",
+HSK_MODEL = genanki.Model(
+    MODEL_ID,
+    "HSK Vocabulary",
     fields=[
         {"name": "Character"},
         {"name": "Pinyin"},
@@ -44,38 +117,39 @@ BEGINNER_MODEL = genanki.Model(
     ],
     templates=[
         {
-            "name": "Pinyin → Meaning",
-            "qfmt": '<div class="pinyin">{{Pinyin}}</div><div class="hsk-level">HSK {{HSKLevel}}</div>',
-            "afmt": '{{FrontSide}}<hr><div class="meaning">{{Meaning}}</div><div class="character">{{Character}}</div>',
+            "name": "Pinyin \u2192 Meaning",
+            "qfmt": (
+                ""
+                '<div class="pinyin">{{Pinyin}}</div>'
+                "<hr>"
+                '<div class="stub">(example sentence coming soon)</div>'
+            ),
+            "afmt": (
+                ""
+                '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
+                '<div class="pinyin">{{Pinyin}}</div>'
+                '<div class="english">{{Meaning}}</div>'
+                "<hr>"
+                '<div class="stub">(example sentence coming soon)</div>'
+            ),
         },
         {
-            "name": "Character → Pronunciation",
-            "qfmt": '<div class="character">{{Character}}</div><div class="hsk-level">HSK {{HSKLevel}}</div>',
-            "afmt": '{{FrontSide}}<hr><div class="pinyin">{{Pinyin}}</div><div class="meaning">{{Meaning}}</div>',
-        },
-        {
-            "name": "Character → Meaning",
-            "qfmt": '<div class="character">{{Character}}</div><div class="hsk-level">HSK {{HSKLevel}}</div>',
-            "afmt": '{{FrontSide}}<hr><div class="meaning">{{Meaning}}</div><div class="pinyin">{{Pinyin}}</div>',
-        },
-    ],
-    css=CARD_CSS,
-)
-
-ADVANCED_MODEL = genanki.Model(
-    ADVANCED_MODEL_ID,
-    "HSK Vocabulary (Advanced)",
-    fields=[
-        {"name": "Character"},
-        {"name": "Pinyin"},
-        {"name": "Meaning"},
-        {"name": "HSKLevel"},
-    ],
-    templates=[
-        {
-            "name": "Character → Meaning",
-            "qfmt": '<div class="character">{{Character}}</div><div class="hsk-level">HSK {{HSKLevel}}</div>',
-            "afmt": '{{FrontSide}}<hr><div class="meaning">{{Meaning}}</div><div class="pinyin">{{Pinyin}}</div>',
+            "name": "Character \u2192 Meaning",
+            "qfmt": (
+                ""
+                '<div lang="zh-Hans" class="hanzi whover" style="--pinyin: \'{{Pinyin}}\'">{{Character}}</div>'
+                '<div class="pinyin"><br></div>'
+                "<hr>"
+                '<div class="stub">(example sentence coming soon)</div>'
+            ),
+            "afmt": (
+                ""
+                '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
+                '<div class="pinyin">{{Pinyin}}</div>'
+                '<div class="english">{{Meaning}}</div>'
+                "<hr>"
+                '<div class="stub">(example sentence coming soon)</div>'
+            ),
         },
     ],
     css=CARD_CSS,
@@ -144,22 +218,18 @@ def export_anki():
         if not tracked_words:
             return jsonify({"error": "No tracked words to export"}), 400
 
-        is_beginner = len(tracked_words) < 200
-        mode = "beginner" if is_beginner else "advanced"
-        model = BEGINNER_MODEL if is_beginner else ADVANCED_MODEL
-
         deck = genanki.Deck(DECK_ID, "HSK Vocabulary")
 
         for word in tracked_words:
             note = genanki.Note(
-                model=model,
+                model=HSK_MODEL,
                 fields=[
                     word["character"],
                     word["pinyin"],
                     word["meaning"],
                     str(word["hsk_level"]),
                 ],
-                guid=stable_guid(word["id"], mode),
+                guid=stable_guid(word["id"], "hsk"),
             )
             deck.add_note(note)
 

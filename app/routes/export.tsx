@@ -11,40 +11,23 @@ interface CardTemplate {
   back: (w: WordWithTracking) => React.ReactNode;
 }
 
-const BEGINNER_TEMPLATES: CardTemplate[] = [
+const TEMPLATES: CardTemplate[] = [
   {
     name: "Pinyin → Meaning",
     front: (w) => (
       <>
-        <div className="anki-pinyin">{w.pinyin}</div>
-        <div className="anki-hsk">HSK {w.hskLevel}</div>
+        <div className="rc-pinyin">{w.pinyin}</div>
+        <hr />
+        <div className="rc-stub">(example sentence coming soon)</div>
       </>
     ),
     back: (w) => (
       <>
-        <div className="anki-pinyin">{w.pinyin}</div>
-        <div className="anki-hsk">HSK {w.hskLevel}</div>
+        <div className="rc-hanzi">{w.character}</div>
+        <div className="rc-pinyin">{w.pinyin}</div>
+        <div className="rc-english">{w.meaning}</div>
         <hr />
-        <div className="anki-meaning">{w.meaning}</div>
-        <div className="anki-character">{w.character}</div>
-      </>
-    ),
-  },
-  {
-    name: "Character → Pronunciation",
-    front: (w) => (
-      <>
-        <div className="anki-character">{w.character}</div>
-        <div className="anki-hsk">HSK {w.hskLevel}</div>
-      </>
-    ),
-    back: (w) => (
-      <>
-        <div className="anki-character">{w.character}</div>
-        <div className="anki-hsk">HSK {w.hskLevel}</div>
-        <hr />
-        <div className="anki-pinyin">{w.pinyin}</div>
-        <div className="anki-meaning">{w.meaning}</div>
+        <div className="rc-stub">(example sentence coming soon)</div>
       </>
     ),
   },
@@ -52,44 +35,39 @@ const BEGINNER_TEMPLATES: CardTemplate[] = [
     name: "Character → Meaning",
     front: (w) => (
       <>
-        <div className="anki-character">{w.character}</div>
-        <div className="anki-hsk">HSK {w.hskLevel}</div>
+        <div className="rc-hanzi">{w.character}</div>
+        <hr />
+        <div className="rc-stub">(example sentence coming soon)</div>
       </>
     ),
     back: (w) => (
       <>
-        <div className="anki-character">{w.character}</div>
-        <div className="anki-hsk">HSK {w.hskLevel}</div>
+        <div className="rc-hanzi">{w.character}</div>
+        <div className="rc-pinyin">{w.pinyin}</div>
+        <div className="rc-english">{w.meaning}</div>
         <hr />
-        <div className="anki-meaning">{w.meaning}</div>
-        <div className="anki-pinyin">{w.pinyin}</div>
+        <div className="rc-stub">(example sentence coming soon)</div>
       </>
     ),
   },
 ];
 
-const ADVANCED_TEMPLATES: CardTemplate[] = [BEGINNER_TEMPLATES[2]];
-
 export function loader() {
   const allWords = getWordsWithTracking();
   const trackedWords = allWords.filter((w) => w.isTracked);
-  const isBeginner = trackedWords.length < 200;
 
   return {
     trackedWords,
-    isBeginner,
-    mode: isBeginner ? "beginner" : "advanced",
-    cardsPerWord: isBeginner ? 3 : 1,
-    totalCards: trackedWords.length * (isBeginner ? 3 : 1),
+    cardsPerWord: 2,
+    totalCards: trackedWords.length * 2,
   };
 }
 
 export default function ExportRoute() {
-  const { trackedWords, isBeginner, mode, cardsPerWord, totalCards } =
+  const { trackedWords, cardsPerWord, totalCards } =
     useLoaderData<typeof loader>();
   const [toast, setToast] = useState<ToastData | null>(null);
 
-  const templates = isBeginner ? BEGINNER_TEMPLATES : ADVANCED_TEMPLATES;
   const sampleWord = trackedWords[0];
 
   const handleExport = useCallback(async () => {
@@ -133,8 +111,7 @@ export default function ExportRoute() {
       <div className="export-summary">
         <p>
           <strong>{trackedWords.length}</strong> words tracked &middot;{" "}
-          <strong>{mode}</strong> mode &middot; {cardsPerWord} card
-          {cardsPerWord > 1 ? "s" : ""} per word &middot;{" "}
+          {cardsPerWord} cards per word &middot;{" "}
           <strong>{totalCards}</strong> total cards
         </p>
       </div>
@@ -146,7 +123,7 @@ export default function ExportRoute() {
       ) : (
         <>
           <div className="card-templates">
-            {templates.map((template) => (
+            {TEMPLATES.map((template) => (
               <div key={template.name} className="card-template-section">
                 <h2 className="template-name">{template.name}</h2>
                 <div className="card-preview-row">
