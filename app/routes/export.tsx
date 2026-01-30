@@ -60,7 +60,14 @@ interface CardTemplate {
 
 function SentenceBlockFront({ idx }: { idx?: WordIndexEntry }) {
   if (idx?.sentence) {
-    return <div className="rc-sentence">{idx.sentence}</div>;
+    return (
+      <>
+        <div className="rc-sentence">{idx.sentence}</div>
+        {idx.sentencePinyin && (
+          <div className="rc-pinyin-sen rc-whover-sen">{idx.sentencePinyin}</div>
+        )}
+      </>
+    );
   }
   return <div className="rc-stub">(example sentence coming soon)</div>;
 }
@@ -130,7 +137,15 @@ const TEMPLATES: CardTemplate[] = [
     name: "Character → Meaning",
     front: (w, idx) => (
       <>
-        <div className="rc-hanzi">{w.character}</div>
+        <div
+          className="rc-hanzi rc-whover"
+          style={{ "--pinyin": `'${idx?.pinyin || w.pinyin}'` } as React.CSSProperties}
+        >
+          {w.character}
+        </div>
+        <div className="rc-pinyin"><br /></div>
+        <div className="rc-english"><br /></div>
+        <div className="rc-description"><br /></div>
         <hr />
         <SentenceBlockFront idx={idx} />
       </>

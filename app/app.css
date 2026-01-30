@@ -677,6 +677,49 @@ body {
   font-family: Kai, "Noto Sans SC", "PingFang SC", sans-serif;
   font-size: 78px;
   margin-top: 20px;
+  position: relative;
+}
+
+.rc-whover {
+  cursor: pointer;
+}
+
+.rc-whover::before {
+  font-family: Palatino, Georgia, serif;
+  content: var(--pinyin);
+  position: absolute;
+  font-size: 22px;
+  color: #55DD55;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 5px;
+  border-left: 3px solid white;
+  transform: translate(-10px, -40px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  height: 140px;
+}
+
+.rc-whover:hover::before {
+  opacity: 1;
+}
+
+.rc-whover-sen {
+  cursor: pointer;
+  border-left: 3px solid white;
+  padding-left: 10px;
+  height: 25px;
+  max-height: 80px;
+  display: flex;
+  padding-top: 55px;
+  transform: translate(-10px, -50px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  white-space: nowrap;
+}
+
+.rc-whover-sen:hover {
+  opacity: 1;
 }
 
 .rc-pinyin {

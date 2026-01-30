@@ -147,8 +147,10 @@ SENTENCE_BLOCK_BACK = (
     "{{^SentenceSimplified}}"
     '<div class="stub">(example sentence coming soon)</div>'
     "{{/SentenceSimplified}}"
+    "<br>"
     "{{#Audio}}{{Audio}}{{/Audio}}"
     "{{#SentenceAudio}} {{SentenceAudio}}{{/SentenceAudio}}"
+    "<br>"
     "{{#SentenceImage}}<div class=\"image\">{{SentenceImage}}</div>{{/SentenceImage}}"
 )
 
