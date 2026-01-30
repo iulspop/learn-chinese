@@ -41,6 +41,8 @@ div {
 .hanzi {
   font-family: Kai;
   font-size: 78px;
+  border-bottom: 3px solid rgba(0, 0, 0, 0);
+  transition: border 0.5s ease, padding 0.5s ease;
   margin-top: 20px;
 }
 .hanzi.whover {
@@ -61,7 +63,6 @@ div {
   transition: opacity 0.5s ease;
   height: 140px;
   padding-top: 0px;
-  pointer-events: none;
 }
 .hanzi.whover:hover::before {
   opacity: 1;
@@ -84,12 +85,29 @@ div {
   font-family: Kai;
   font-size: 30px;
   text-align: left;
+  transition: padding 0.5s ease;
 }
 .pinyinSen {
   font-family: Palatino;
   font-size: 20px;
   color: #55DD55;
   text-align: left;
+}
+.pinyinSen.whover {
+  cursor: pointer;
+  border-left: 3px solid white;
+  padding-left: 10px;
+  height: 25px;
+  max-height: 80px;
+  display: flex;
+  padding-top: 55px;
+  transform: translate(-10px, -50px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  white-space: nowrap;
+}
+.pinyinSen.whover:hover {
+  opacity: 1;
 }
 .meaningSent {
   font-family: Didot;
@@ -113,6 +131,7 @@ div {
 SENTENCE_BLOCK_FRONT = (
     "{{#SentenceSimplified}}"
     '<div lang="zh-Hans" class="sentence">{{SentenceSimplified}}</div>'
+    '<div class="pinyinSen whover">{{SentencePinyin}}</div>'
     "{{/SentenceSimplified}}"
     "{{^SentenceSimplified}}"
     '<div class="stub">(example sentence coming soon)</div>'
@@ -176,6 +195,8 @@ HSK_MODEL = genanki.Model(
             "qfmt": (
                 '<div lang="zh-Hans" class="hanzi whover" style="--pinyin: \'{{Pinyin}}\'">{{Character}}</div>'
                 '<div class="pinyin"><br></div>'
+                '<div class="english"><br></div>'
+                '<div class="description"><br></div>'
                 "<hr>"
                 + SENTENCE_BLOCK_FRONT
             ),
