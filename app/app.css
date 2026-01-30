@@ -15,7 +15,7 @@ body {
 }
 
 .words-page {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 1rem;
 }
@@ -145,6 +145,17 @@ body {
   letter-spacing: 0.05em;
 }
 
+.th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sort-indicator {
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
 .word-table td {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #f3f4f6;
@@ -179,6 +190,11 @@ body {
 .col-level {
   width: 50px;
   text-align: center;
+}
+
+.col-freq {
+  width: 70px;
+  text-align: right;
 }
 
 .track-btn {
