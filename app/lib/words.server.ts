@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { HskWord, TrackedWords, WordWithTracking, FrequencyStats } from "./types";
+import type { HskWord, TrackedWords, WordWithTracking, FrequencyStats, WordIndexEntry } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "app", "data");
 const COMPLETE_PATH = path.join(DATA_DIR, "complete.json");
 const TRACKED_PATH = path.join(DATA_DIR, "tracked-words.json");
+const INDEX_PATH = path.join(DATA_DIR, "word-index.json");
 
 function parseLevel(levelStr: string): number | null {
   const match = levelStr.match(/^new-(\d+)$/);
@@ -105,6 +106,15 @@ export function getWordsWithTracking(level?: number): WordWithTracking[] {
     ...w,
     isTracked: tracked.has(w.id),
   }));
+}
+
+let cachedIndex: Record<string, WordIndexEntry> | null = null;
+
+export function getWordIndex(): Record<string, WordIndexEntry> {
+  if (cachedIndex) return cachedIndex;
+  if (!fs.existsSync(INDEX_PATH)) return {};
+  cachedIndex = JSON.parse(fs.readFileSync(INDEX_PATH, "utf-8"));
+  return cachedIndex!;
 }
 
 const BUCKET_SIZE = 500;

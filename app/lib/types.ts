@@ -30,6 +30,20 @@ export interface TrackedWords {
   tracked: string[];
 }
 
+export interface WordIndexEntry {
+  simplified: string;
+  pinyin: string;
+  meaning: string;
+  partOfSpeech: string;
+  audio: string;
+  sentence: string;
+  sentencePinyin: string;
+  sentenceMeaning: string;
+  sentenceAudio: string;
+  sentenceImage: string;
+  source: string;
+}
+
 export interface WordWithTracking extends HskWord {
   isTracked: boolean;
 }

@@ -630,6 +630,33 @@ body {
   color: #575757;
 }
 
+.rc-sentence {
+  font-family: Kai, "Noto Sans SC", "PingFang SC", sans-serif;
+  font-size: 30px;
+}
+
+.rc-pinyin-sen {
+  font-family: Palatino, Georgia, serif;
+  font-size: 20px;
+  color: #55DD55;
+}
+
+.rc-meaning-sen {
+  font-family: Didot, Georgia, serif;
+  font-size: 16px;
+}
+
+.rc-image {
+  margin-top: 20px;
+  border-left: 3px solid white;
+  padding-left: 10px;
+}
+
+.rc-image img {
+  max-width: 100%;
+  max-height: 200px;
+}
+
 .rc-stub {
   font-family: Didot, Georgia, serif;
   font-size: 14px;

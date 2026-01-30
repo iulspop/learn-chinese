@@ -1,52 +1,93 @@
 import { useState, useCallback } from "react";
 import { useLoaderData } from "react-router";
 import type { Route } from "./+types/export";
-import { getWordsWithTracking } from "~/lib/words.server";
+import { getWordsWithTracking, getWordIndex } from "~/lib/words.server";
 import { Toast, type ToastData } from "~/components/toast";
-import type { WordWithTracking } from "~/lib/types";
+import type { WordWithTracking, WordIndexEntry } from "~/lib/types";
 
 interface CardTemplate {
   name: string;
-  front: (w: WordWithTracking) => React.ReactNode;
-  back: (w: WordWithTracking) => React.ReactNode;
+  front: (w: WordWithTracking, idx?: WordIndexEntry) => React.ReactNode;
+  back: (w: WordWithTracking, idx?: WordIndexEntry) => React.ReactNode;
+}
+
+function SentenceBlockFront({ idx }: { idx?: WordIndexEntry }) {
+  if (idx?.sentence) {
+    return <div className="rc-sentence">{idx.sentence}</div>;
+  }
+  return <div className="rc-stub">(example sentence coming soon)</div>;
+}
+
+function SentenceBlockBack({ idx }: { idx?: WordIndexEntry }) {
+  return (
+    <>
+      {idx?.sentence ? (
+        <>
+          <div className="rc-sentence">{idx.sentence}</div>
+          {idx.sentencePinyin && (
+            <div className="rc-pinyin-sen">{idx.sentencePinyin}</div>
+          )}
+          {idx.sentenceMeaning && (
+            <div className="rc-meaning-sen">{idx.sentenceMeaning}</div>
+          )}
+          {idx.sentenceImage && (
+            <div className="rc-image">
+              <img src={`/media/${idx.sentenceImage}`} alt="" />
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="rc-stub">(example sentence coming soon)</div>
+      )}
+    </>
+  );
 }
 
 const TEMPLATES: CardTemplate[] = [
   {
     name: "Pinyin → Meaning",
-    front: (w) => (
+    front: (w, idx) => (
       <>
-        <div className="rc-pinyin">{w.pinyin}</div>
+        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
+        {idx?.partOfSpeech && (
+          <div className="rc-description">{idx.partOfSpeech}</div>
+        )}
         <hr />
-        <div className="rc-stub">(example sentence coming soon)</div>
+        <SentenceBlockFront idx={idx} />
       </>
     ),
-    back: (w) => (
+    back: (w, idx) => (
       <>
         <div className="rc-hanzi">{w.character}</div>
-        <div className="rc-pinyin">{w.pinyin}</div>
-        <div className="rc-english">{w.meaning}</div>
+        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
+        <div className="rc-english">{idx?.meaning || w.meaning}</div>
+        {idx?.partOfSpeech && (
+          <div className="rc-description">{idx.partOfSpeech}</div>
+        )}
         <hr />
-        <div className="rc-stub">(example sentence coming soon)</div>
+        <SentenceBlockBack idx={idx} />
       </>
     ),
   },
   {
     name: "Character → Meaning",
-    front: (w) => (
+    front: (w, idx) => (
       <>
         <div className="rc-hanzi">{w.character}</div>
         <hr />
-        <div className="rc-stub">(example sentence coming soon)</div>
+        <SentenceBlockFront idx={idx} />
       </>
     ),
-    back: (w) => (
+    back: (w, idx) => (
       <>
         <div className="rc-hanzi">{w.character}</div>
-        <div className="rc-pinyin">{w.pinyin}</div>
-        <div className="rc-english">{w.meaning}</div>
+        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
+        <div className="rc-english">{idx?.meaning || w.meaning}</div>
+        {idx?.partOfSpeech && (
+          <div className="rc-description">{idx.partOfSpeech}</div>
+        )}
         <hr />
-        <div className="rc-stub">(example sentence coming soon)</div>
+        <SentenceBlockBack idx={idx} />
       </>
     ),
   },
@@ -55,20 +96,27 @@ const TEMPLATES: CardTemplate[] = [
 export function loader() {
   const allWords = getWordsWithTracking();
   const trackedWords = allWords.filter((w) => w.isTracked);
+  const wordIndex = getWordIndex();
+
+  // Pick a sample word that has index data for a richer preview
+  const sampleWord =
+    trackedWords.find((w) => wordIndex[w.character]?.sentence) ??
+    trackedWords[0];
+  const sampleIndex = sampleWord ? wordIndex[sampleWord.character] : undefined;
 
   return {
     trackedWords,
+    sampleWord,
+    sampleIndex,
     cardsPerWord: 2,
     totalCards: trackedWords.length * 2,
   };
 }
 
 export default function ExportRoute() {
-  const { trackedWords, cardsPerWord, totalCards } =
+  const { trackedWords, sampleWord, sampleIndex, cardsPerWord, totalCards } =
     useLoaderData<typeof loader>();
   const [toast, setToast] = useState<ToastData | null>(null);
-
-  const sampleWord = trackedWords[0];
 
   const handleExport = useCallback(async () => {
     setToast({ type: "pending", message: "Exporting Anki deck..." });
@@ -129,11 +177,11 @@ export default function ExportRoute() {
                 <div className="card-preview-row">
                   <div className="card-preview">
                     <div className="card-label">Front</div>
-                    <div className="anki-card">{template.front(sampleWord)}</div>
+                    <div className="anki-card">{template.front(sampleWord, sampleIndex)}</div>
                   </div>
                   <div className="card-preview">
                     <div className="card-label">Back</div>
-                    <div className="anki-card">{template.back(sampleWord)}</div>
+                    <div className="anki-card">{template.back(sampleWord, sampleIndex)}</div>
                   </div>
                 </div>
               </div>

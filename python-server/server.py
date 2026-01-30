@@ -1,6 +1,7 @@
 import json
 import os
 import hashlib
+import glob
 import genanki
 from flask import Flask, jsonify, send_file
 from flask_cors import CORS
@@ -11,6 +12,8 @@ CORS(app)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 COMPLETE_PATH = os.path.join(BASE_DIR, "app", "data", "complete.json")
 TRACKED_PATH = os.path.join(BASE_DIR, "app", "data", "tracked-words.json")
+INDEX_PATH = os.path.join(BASE_DIR, "app", "data", "word-index.json")
+MEDIA_DIR = os.path.join(BASE_DIR, "app", "data", "media")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, "hsk-vocabulary.apkg")
 
@@ -34,12 +37,6 @@ div {
   background-color: rgb(47, 47, 49);
   color: #fff;
   padding: 20px;
-}
-.recall-prompt {
-  font-family: Didot;
-  font-size: 13px;
-  color: #575757;
-  margin-bottom: 15px;
 }
 .hanzi {
   font-family: Kai;
@@ -104,7 +101,36 @@ div {
   color: #575757;
   font-style: italic;
 }
+.image {
+  margin-top: 20px;
+  border-left: 3px solid white;
+  padding-left: 10px;
+}
 """
+
+# Sentence block used in both templates (conditionally rendered)
+SENTENCE_BLOCK_FRONT = (
+    "{{#SentenceSimplified}}"
+    '<div lang="zh-Hans" class="sentence">{{SentenceSimplified}}</div>'
+    "{{/SentenceSimplified}}"
+    "{{^SentenceSimplified}}"
+    '<div class="stub">(example sentence coming soon)</div>'
+    "{{/SentenceSimplified}}"
+)
+
+SENTENCE_BLOCK_BACK = (
+    "{{#SentenceSimplified}}"
+    '<div lang="zh-Hans" class="sentence">{{SentenceSimplified}}</div>'
+    '<div class="pinyinSen">{{SentencePinyin}}</div>'
+    '<div class="meaningSent">{{SentenceMeaning}}</div>'
+    "{{/SentenceSimplified}}"
+    "{{^SentenceSimplified}}"
+    '<div class="stub">(example sentence coming soon)</div>'
+    "{{/SentenceSimplified}}"
+    "{{#Audio}}{{Audio}}{{/Audio}}"
+    "{{#SentenceAudio}} {{SentenceAudio}}{{/SentenceAudio}}"
+    "{{#SentenceImage}}<div class=\"image\">{{SentenceImage}}</div>{{/SentenceImage}}"
+)
 
 HSK_MODEL = genanki.Model(
     MODEL_ID,
@@ -114,41 +140,53 @@ HSK_MODEL = genanki.Model(
         {"name": "Pinyin"},
         {"name": "Meaning"},
         {"name": "HSKLevel"},
+        {"name": "PartOfSpeech"},
+        {"name": "Audio"},
+        {"name": "SentenceSimplified"},
+        {"name": "SentencePinyin"},
+        {"name": "SentenceMeaning"},
+        {"name": "SentenceAudio"},
+        {"name": "SentenceImage"},
     ],
     templates=[
         {
             "name": "Pinyin \u2192 Meaning",
             "qfmt": (
-                ""
                 '<div class="pinyin">{{Pinyin}}</div>'
+                "{{#PartOfSpeech}}"
+                '<div class="description">{{PartOfSpeech}}</div>'
+                "{{/PartOfSpeech}}"
                 "<hr>"
-                '<div class="stub">(example sentence coming soon)</div>'
+                + SENTENCE_BLOCK_FRONT
             ),
             "afmt": (
-                ""
                 '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
                 '<div class="pinyin">{{Pinyin}}</div>'
                 '<div class="english">{{Meaning}}</div>'
+                "{{#PartOfSpeech}}"
+                '<div class="description">{{PartOfSpeech}}</div>'
+                "{{/PartOfSpeech}}"
                 "<hr>"
-                '<div class="stub">(example sentence coming soon)</div>'
+                + SENTENCE_BLOCK_BACK
             ),
         },
         {
             "name": "Character \u2192 Meaning",
             "qfmt": (
-                ""
                 '<div lang="zh-Hans" class="hanzi whover" style="--pinyin: \'{{Pinyin}}\'">{{Character}}</div>'
                 '<div class="pinyin"><br></div>'
                 "<hr>"
-                '<div class="stub">(example sentence coming soon)</div>'
+                + SENTENCE_BLOCK_FRONT
             ),
             "afmt": (
-                ""
                 '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
                 '<div class="pinyin">{{Pinyin}}</div>'
                 '<div class="english">{{Meaning}}</div>'
+                "{{#PartOfSpeech}}"
+                '<div class="description">{{PartOfSpeech}}</div>'
+                "{{/PartOfSpeech}}"
                 "<hr>"
-                '<div class="stub">(example sentence coming soon)</div>'
+                + SENTENCE_BLOCK_BACK
             ),
         },
     ],
@@ -208,6 +246,13 @@ def load_tracked():
         return json.load(f)["tracked"]
 
 
+def load_word_index():
+    if not os.path.exists(INDEX_PATH):
+        return {}
+    with open(INDEX_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 @app.route("/export-anki", methods=["POST"])
 def export_anki():
     try:
@@ -218,9 +263,24 @@ def export_anki():
         if not tracked_words:
             return jsonify({"error": "No tracked words to export"}), 400
 
+        word_index = load_word_index()
         deck = genanki.Deck(DECK_ID, "HSK Vocabulary")
+        media_files = []
 
         for word in tracked_words:
+            idx = word_index.get(word["character"], {})
+
+            audio = f'[sound:{idx["audio"]}]' if idx.get("audio") else ""
+            sen_audio = f'[sound:{idx["sentenceAudio"]}]' if idx.get("sentenceAudio") else ""
+            sen_image = f'<img src="{idx["sentenceImage"]}">' if idx.get("sentenceImage") else ""
+
+            # Collect media files
+            for f_name in [idx.get("audio"), idx.get("sentenceAudio"), idx.get("sentenceImage")]:
+                if f_name:
+                    f_path = os.path.join(MEDIA_DIR, f_name)
+                    if os.path.exists(f_path) and f_path not in media_files:
+                        media_files.append(f_path)
+
             note = genanki.Note(
                 model=HSK_MODEL,
                 fields=[
@@ -228,13 +288,22 @@ def export_anki():
                     word["pinyin"],
                     word["meaning"],
                     str(word["hsk_level"]),
+                    idx.get("partOfSpeech", ""),
+                    audio,
+                    idx.get("sentence", ""),
+                    idx.get("sentencePinyin", ""),
+                    idx.get("sentenceMeaning", ""),
+                    sen_audio,
+                    sen_image,
                 ],
                 guid=stable_guid(word["id"], "hsk"),
             )
             deck.add_note(note)
 
         os.makedirs(OUTPUT_DIR, exist_ok=True)
-        genanki.Package(deck).write_to_file(OUTPUT_PATH)
+        pkg = genanki.Package(deck)
+        pkg.media_files = media_files
+        pkg.write_to_file(OUTPUT_PATH)
 
         return send_file(
             OUTPUT_PATH,

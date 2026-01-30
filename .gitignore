@@ -14,3 +14,11 @@ __pycache__/
 
 # User Data
 app/data/tracked-words.json
+
+# Anki deck sources (see README for setup)
+/decks/Refold_Mandarin_1k_Simplified/
+/decks/Mandarin_HSK_1000-5000/
+
+# Build artifacts
+app/data/word-index.json
+app/data/media/
