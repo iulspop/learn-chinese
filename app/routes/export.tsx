@@ -64,7 +64,17 @@ function SentenceBlockFront({ idx }: { idx?: WordIndexEntry }) {
       <>
         <div className="rc-sentence">{idx.sentence}</div>
         {idx.sentencePinyin && (
-          <div className="rc-pinyin-sen rc-whover-sen">{idx.sentencePinyin}</div>
+          <div className="rc-pinyin-sen rc-whover-sen">
+            {idx.sentencePinyin.includes("Sandhi:") ? (
+              <>
+                {idx.sentencePinyin.split("Sandhi:")[0].trim()}
+                <br />
+                Sandhi: {idx.sentencePinyin.split("Sandhi:")[1].trim()}
+              </>
+            ) : (
+              idx.sentencePinyin
+            )}
+          </div>
         )}
       </>
     );
