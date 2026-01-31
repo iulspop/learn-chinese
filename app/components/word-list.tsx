@@ -454,12 +454,14 @@ export function WordList({ words, prefs = {}, onToggle, selectionMode = false, s
             <div className="word-table-row" role="row" key={headerGroup.id} style={{ gridTemplateColumns }}>
               {selectionMode && (
                 <div role="columnheader" className="word-table-th col-select">
-                  <input
-                    type="checkbox"
+                  <Checkbox.Root
+                    className="select-checkbox"
                     checked={allVisibleSelected}
-                    onChange={toggleSelectAll}
+                    onCheckedChange={toggleSelectAll}
                     aria-label="Select all visible"
-                  />
+                  >
+                    <Checkbox.Indicator className="select-checkbox-indicator">&#10003;</Checkbox.Indicator>
+                  </Checkbox.Root>
                 </div>
               )}
               {headerGroup.headers.map((header) => {
@@ -530,13 +532,15 @@ export function WordList({ words, prefs = {}, onToggle, selectionMode = false, s
               >
                 {selectionMode && (
                   <div role="cell" className="word-table-td col-select">
-                    <input
-                      type="checkbox"
+                    <Checkbox.Root
+                      className="select-checkbox"
                       checked={selectedIds?.has(word.id) ?? false}
-                      onChange={() => toggleSelect(word.id)}
+                      onCheckedChange={() => toggleSelect(word.id)}
                       disabled={word.hasIndex}
                       aria-label={`Select ${word.character}`}
-                    />
+                    >
+                      <Checkbox.Indicator className="select-checkbox-indicator">&#10003;</Checkbox.Indicator>
+                    </Checkbox.Root>
                   </div>
                 )}
                 {row.getVisibleCells().map((cell) => {

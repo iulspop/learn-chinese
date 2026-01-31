@@ -1492,42 +1492,42 @@ body {
   justify-content: center;
 }
 
-.col-select input[type="checkbox"] {
-  appearance: none;
+.select-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border: 2px solid #d1d5db;
   border-radius: 6px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s;
   background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
 }
 
-.col-select input[type="checkbox"]:hover {
+.select-checkbox:hover {
   border-color: #0369a1;
 }
 
-.col-select input[type="checkbox"]:checked {
+.select-checkbox[data-checked] {
   background: #0369a1;
   border-color: #0369a1;
 }
 
-.col-select input[type="checkbox"]:checked::after {
-  content: "\2713";
-  color: #fff;
-  font-size: 0.9rem;
-}
-
-.col-select input[type="checkbox"]:disabled {
+.select-checkbox[data-disabled] {
   opacity: 0.3;
   cursor: default;
 }
 
-.col-select input[type="checkbox"]:disabled:hover {
+.select-checkbox[data-disabled]:hover {
   border-color: #d1d5db;
+}
+
+.select-checkbox-indicator {
+  color: #fff;
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 /* Floating action bar */
