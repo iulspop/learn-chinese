@@ -86,31 +86,69 @@ function stripDiacritics(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-export function WordList({ words, initialColumnVisibility = {}, onToggle }: { words: WordWithTracking[]; initialColumnVisibility?: VisibilityState; onToggle: (wordId: string) => void }) {
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: "frequency", desc: false },
-  ]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+type SearchField = "all" | "character" | "pinyin" | "meaning" | "pinyin+character";
+
+const COOKIE_OPTS = ";path=/;max-age=31536000;SameSite=Lax";
+
+function saveCookie(key: string, value: unknown): void {
+  document.cookie = `${key}=${encodeURIComponent(JSON.stringify(value))}${COOKIE_OPTS}`;
+}
+
+export interface WordListPrefs {
+  columnVisibility?: VisibilityState;
+  sorting?: SortingState;
+  columnFilters?: ColumnFiltersState;
+  searchField?: SearchField;
+}
+
+export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTracking[]; prefs?: WordListPrefs; onToggle: (wordId: string) => void }) {
+  const [sorting, setSorting] = useState<SortingState>(
+    prefs.sorting ?? [{ id: "frequency", desc: false }],
+  );
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(prefs.columnVisibility ?? {});
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(prefs.columnFilters ?? []);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [searchField, setSearchField] = useState<"all" | "character" | "pinyin" | "meaning" | "pinyin+character">("all");
+  const [searchField, setSearchField] = useState<SearchField>(prefs.searchField ?? "all");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleSortingChange = (updater: SortingState | ((old: SortingState) => SortingState)) => {
+    setSorting((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      saveCookie("wl-sorting", next);
+      return next;
+    });
+  };
 
   const handleColumnVisibilityChange = (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
     setColumnVisibility((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      document.cookie = `col-visibility=${JSON.stringify(next)};path=/;max-age=${60 * 60 * 24 * 365}`;
+      saveCookie("wl-col-visibility", next);
       return next;
     });
+  };
+
+  const handleColumnFiltersChange = (updater: ColumnFiltersState | ((old: ColumnFiltersState) => ColumnFiltersState)) => {
+    setColumnFilters((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      saveCookie("wl-col-filters", next);
+      return next;
+    });
+  };
+
+  const handleSearchFieldChange = (val: string | null) => {
+    if (!val) return;
+    const next = val as SearchField;
+    setSearchField(next);
+    saveCookie("wl-search-field", next);
   };
 
   const table = useReactTable({
     data: words,
     columns,
     state: { sorting, columnVisibility, columnFilters, globalFilter: `${searchField}:${globalFilter}` },
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: handleColumnFiltersChange,
     onGlobalFilterChange: (value: string) => {
       const colonIdx = value.indexOf(":");
       if (colonIdx !== -1) {
@@ -163,7 +201,7 @@ export function WordList({ words, initialColumnVisibility = {}, onToggle }: { wo
         <Search size={14} className="search-icon" />
         <Select.Root
           value={searchField}
-          onValueChange={(val) => setSearchField(val as typeof searchField)}
+          onValueChange={handleSearchFieldChange}
         >
           <Select.Trigger className="search-field-trigger">
             <Select.Value />
@@ -202,7 +240,7 @@ export function WordList({ words, initialColumnVisibility = {}, onToggle }: { wo
       <Select.Root
         value={(columnFilters.find((f) => f.id === "track")?.value as string) ?? "all"}
         onValueChange={(val) => {
-          setColumnFilters((prev) => {
+          handleColumnFiltersChange((prev) => {
             const next = prev.filter((f) => f.id !== "track");
             if (val !== "all") next.push({ id: "track", value: val });
             return next;
@@ -238,7 +276,7 @@ export function WordList({ words, initialColumnVisibility = {}, onToggle }: { wo
       <Select.Root
         value={(columnFilters.find((f) => f.id === "hasIndex")?.value as string) ?? "all"}
         onValueChange={(val) => {
-          setColumnFilters((prev) => {
+          handleColumnFiltersChange((prev) => {
             const next = prev.filter((f) => f.id !== "hasIndex");
             if (val !== "all") next.push({ id: "hasIndex", value: val });
             return next;

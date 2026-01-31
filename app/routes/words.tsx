@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useLoaderData, useSearchParams } from "react-router";
 import type { Route } from "./+types/words";
 import { getWords, getAllWords } from "~/lib/words.server";
-import { WordList } from "~/components/word-list";
+import { WordList, type WordListPrefs } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { computeFrequencyStats, computeCoverageCurve } from "~/lib/stats";
@@ -11,22 +11,15 @@ import type { WordWithTracking } from "~/lib/types";
 const HSK_LEVELS = [1, 2, 3, 4, 5, 6, 7] as const;
 const HSK_LEVEL_LABELS: Record<number, string> = { 7: "7-9" };
 
-function parseColumnVisibility(cookieHeader: string | null): Record<string, boolean> {
-  if (!cookieHeader) return {};
-  const match = cookieHeader.match(/(?:^|;\s*)col-visibility=([^;]*)/);
-  if (!match) return {};
+function parseCookie<T>(cookieHeader: string | null, key: string, fallback: T): T {
+  if (!cookieHeader) return fallback;
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${key}=([^;]*)`));
+  if (!match) return fallback;
   try {
-    return JSON.parse(decodeURIComponent(match[1]));
+    return JSON.parse(decodeURIComponent(match[1])) as T;
   } catch {
-    return {};
+    return fallback;
   }
-}
-
-function parseFreqView(cookieHeader: string | null): "bars" | "coverage" {
-  if (!cookieHeader) return "bars";
-  const match = cookieHeader.match(/(?:^|;\s*)freq-view=([^;]*)/);
-  if (!match) return "bars";
-  return match[1] === "coverage" ? "coverage" : "bars";
 }
 
 export function loader({ request }: Route.LoaderArgs) {
@@ -37,14 +30,21 @@ export function loader({ request }: Route.LoaderArgs) {
   const words = getWords(level);
   const allWords = getAllWords();
   const cookieHeader = request.headers.get("cookie");
-  const columnVisibility = parseColumnVisibility(cookieHeader);
-  const freqView = parseFreqView(cookieHeader);
 
-  return { words, allWords, currentLevel: level ?? null, freqView, columnVisibility };
+  const freqViewMatch = cookieHeader?.match(/(?:^|;\s*)freq-view=([^;]*)/);
+  const freqView: "bars" | "coverage" = freqViewMatch?.[1] === "coverage" ? "coverage" : "bars";
+  const wordListPrefs: WordListPrefs = {
+    columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", {}),
+    sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
+    columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
+    searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
+  };
+
+  return { words, allWords, currentLevel: level ?? null, freqView, wordListPrefs };
 }
 
 export default function WordsRoute() {
-  const { words, allWords, currentLevel, freqView, columnVisibility } = useLoaderData<typeof loader>();
+  const { words, allWords, currentLevel, freqView, wordListPrefs } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
 
@@ -119,7 +119,7 @@ export default function WordsRoute() {
 
       <FrequencyCoverage stats={frequencyStats} coverageCurve={coverageCurve} initialView={freqView} isHsk7={currentLevel === 7} />
 
-      <WordList words={wordsWithTracking} initialColumnVisibility={columnVisibility} onToggle={toggleWord} />
+      <WordList words={wordsWithTracking} prefs={wordListPrefs} onToggle={toggleWord} />
     </div>
   );
 }
