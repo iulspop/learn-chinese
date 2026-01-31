@@ -13,6 +13,9 @@ services:
 
   python:
     image: iulspop/learn-chinese-python:latest
+    env_file:
+      - .env.production
     volumes:
       - ./data:/app/data
+      - ./gcp-key.json:/app/gcp-key.json:ro
     restart: unless-stopped
