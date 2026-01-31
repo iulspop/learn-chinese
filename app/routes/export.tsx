@@ -229,35 +229,65 @@ export function loader({ request }: Route.LoaderArgs) {
   return { allWords, wordIndex };
 }
 
-function getCachedExportData() {
-  const version = document.cookie.match(/(?:^|;\s*)hsk-version=([^;]*)/)?.[1] ?? "3.0";
-  const cachedVersion = localStorage.getItem("cached-hsk-version");
-  const rawWords = localStorage.getItem("cached-all-words");
-  const rawIndex = localStorage.getItem("cached-word-index");
-  if (cachedVersion === version && rawWords && rawIndex) {
-    return {
-      allWords: JSON.parse(rawWords) as HskWordWithDeck[],
-      wordIndex: JSON.parse(rawIndex) as Record<string, WordIndexEntry>,
+function openCacheDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("hsk-cache", 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("data")) {
+        db.createObjectStore("data");
+      }
     };
-  }
-  return null;
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbGet<T>(db: IDBDatabase, key: string): Promise<T | undefined> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("data", "readonly");
+    const req = tx.objectStore("data").get(key);
+    req.onsuccess = () => resolve(req.result as T | undefined);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function idbPut(db: IDBDatabase, entries: Record<string, unknown>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("data", "readwrite");
+    const store = tx.objectStore("data");
+    for (const [key, value] of Object.entries(entries)) {
+      store.put(value, key);
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
   const raw = localStorage.getItem("tracked-words");
   const trackedIds: string[] = raw ? JSON.parse(raw) : [];
 
-  const cached = getCachedExportData();
-  if (cached) {
-    return { ...cached, trackedIds };
-  }
+  try {
+    const db = await openCacheDB();
+    const version = document.cookie.match(/(?:^|;\s*)hsk-version=([^;]*)/)?.[1] ?? "3.0";
+    const [cachedVersion, cachedAllWords, cachedWordIndex] = await Promise.all([
+      idbGet<string>(db, "hsk-version"),
+      idbGet<HskWordWithDeck[]>(db, "all-words"),
+      idbGet<Record<string, WordIndexEntry>>(db, "word-index"),
+    ]);
 
-  const serverData = await serverLoader();
-  const version = document.cookie.match(/(?:^|;\s*)hsk-version=([^;]*)/)?.[1] ?? "3.0";
-  localStorage.setItem("cached-hsk-version", version);
-  localStorage.setItem("cached-all-words", JSON.stringify(serverData.allWords));
-  localStorage.setItem("cached-word-index", JSON.stringify(serverData.wordIndex));
-  return { ...serverData, trackedIds };
+    if (cachedVersion === version && cachedAllWords && cachedWordIndex) {
+      return { allWords: cachedAllWords, wordIndex: cachedWordIndex, trackedIds };
+    }
+
+    const serverData = await serverLoader();
+    await idbPut(db, { "hsk-version": version, "all-words": serverData.allWords, "word-index": serverData.wordIndex });
+    return { ...serverData, trackedIds };
+  } catch {
+    const serverData = await serverLoader();
+    return { ...serverData, trackedIds };
+  }
 }
 
 clientLoader.hydrate = true as const;

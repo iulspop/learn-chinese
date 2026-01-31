@@ -56,18 +56,39 @@ export function loader({ request }: Route.LoaderArgs) {
   return { words, allWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version, wordIndex };
 }
 
-function getCachedVersion(): string | null {
-  return localStorage.getItem("cached-hsk-version");
+function openCacheDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("hsk-cache", 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains("data")) {
+        db.createObjectStore("data");
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-function getCachedAllWords(): HskWordWithDeck[] | null {
-  const raw = localStorage.getItem("cached-all-words");
-  return raw ? JSON.parse(raw) : null;
+function idbGet<T>(db: IDBDatabase, key: string): Promise<T | undefined> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("data", "readonly");
+    const req = tx.objectStore("data").get(key);
+    req.onsuccess = () => resolve(req.result as T | undefined);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-function setCachedWords(version: string, allWords: HskWordWithDeck[]) {
-  localStorage.setItem("cached-hsk-version", version);
-  localStorage.setItem("cached-all-words", JSON.stringify(allWords));
+function idbPut(db: IDBDatabase, entries: Record<string, unknown>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("data", "readwrite");
+    const store = tx.objectStore("data");
+    for (const [key, value] of Object.entries(entries)) {
+      store.put(value, key);
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
 }
 
 export async function clientLoader({ serverLoader, request }: Route.ClientLoaderArgs) {
@@ -77,34 +98,47 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
 
   const cookieHeader = document.cookie;
   const version = parseCookieRaw(cookieHeader, "hsk-version", "3.0") as HskVersion;
-  const cachedVersion = getCachedVersion();
-  const cachedAllWords = getCachedAllWords();
 
   const raw = localStorage.getItem("tracked-words");
   const trackedIds: string[] = raw ? JSON.parse(raw) : [];
 
-  if (cachedVersion === version && cachedAllWords) {
-    // Cache hit — skip server call, read prefs from cookies client-side
-    const maxLevel = version === "2.0" ? 6 : 7;
-    const effectiveLevel = level && level <= maxLevel ? level : undefined;
-    const words = effectiveLevel ? cachedAllWords.filter((w) => w.hskLevel === effectiveLevel) : cachedAllWords;
+  try {
+    if (localStorage.getItem("cached-all-words")) {
+      localStorage.removeItem("cached-hsk-version");
+      localStorage.removeItem("cached-all-words");
+      localStorage.removeItem("cached-word-index");
+    }
 
-    const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
-    const wordListPrefs: WordListPrefs = {
-      columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", {}),
-      sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
-      columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
-      searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
-    };
+    const db = await openCacheDB();
+    const [cachedVersion, cachedAllWords] = await Promise.all([
+      idbGet<string>(db, "hsk-version"),
+      idbGet<HskWordWithDeck[]>(db, "all-words"),
+    ]);
 
-    return { words, allWords: cachedAllWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version, trackedIds };
+    if (cachedVersion === version && cachedAllWords) {
+      const maxLevel = version === "2.0" ? 6 : 7;
+      const effectiveLevel = level && level <= maxLevel ? level : undefined;
+      const words = effectiveLevel ? cachedAllWords.filter((w) => w.hskLevel === effectiveLevel) : cachedAllWords;
+
+      const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
+      const wordListPrefs: WordListPrefs = {
+        columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", {}),
+        sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
+        columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
+        searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
+      };
+
+      return { words, allWords: cachedAllWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version, trackedIds };
+    }
+
+    const serverData = await serverLoader();
+    await idbPut(db, { "hsk-version": serverData.version, "all-words": serverData.allWords, "word-index": serverData.wordIndex });
+    return { ...serverData, trackedIds };
+  } catch {
+    // IndexedDB unavailable — fall back to server
+    const serverData = await serverLoader();
+    return { ...serverData, trackedIds };
   }
-
-  // Cache miss — fetch from server and cache
-  const serverData = await serverLoader();
-  setCachedWords(serverData.version, serverData.allWords);
-  localStorage.setItem("cached-word-index", JSON.stringify(serverData.wordIndex));
-  return { ...serverData, trackedIds };
 }
 
 clientLoader.hydrate = true as const;
