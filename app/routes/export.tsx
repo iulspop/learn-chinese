@@ -5,7 +5,7 @@ import { getWords, getWordIndex, type HskVersion } from "~/lib/words.server";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { Toast, type ToastData } from "~/components/toast";
 import { Checkbox } from "@base-ui/react/checkbox";
-import type { WordWithTracking, WordIndexEntry } from "~/lib/types";
+import type { WordWithTracking, WordIndexEntry, HskWordWithDeck } from "~/lib/types";
 
 function AudioButton({ src }: { src: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -229,10 +229,34 @@ export function loader({ request }: Route.LoaderArgs) {
   return { allWords, wordIndex };
 }
 
+function getCachedExportData() {
+  const version = document.cookie.match(/(?:^|;\s*)hsk-version=([^;]*)/)?.[1] ?? "3.0";
+  const cachedVersion = localStorage.getItem("cached-hsk-version");
+  const rawWords = localStorage.getItem("cached-all-words");
+  const rawIndex = localStorage.getItem("cached-word-index");
+  if (cachedVersion === version && rawWords && rawIndex) {
+    return {
+      allWords: JSON.parse(rawWords) as HskWordWithDeck[],
+      wordIndex: JSON.parse(rawIndex) as Record<string, WordIndexEntry>,
+    };
+  }
+  return null;
+}
+
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
-  const serverData = await serverLoader();
   const raw = localStorage.getItem("tracked-words");
   const trackedIds: string[] = raw ? JSON.parse(raw) : [];
+
+  const cached = getCachedExportData();
+  if (cached) {
+    return { ...cached, trackedIds };
+  }
+
+  const serverData = await serverLoader();
+  const version = document.cookie.match(/(?:^|;\s*)hsk-version=([^;]*)/)?.[1] ?? "3.0";
+  localStorage.setItem("cached-hsk-version", version);
+  localStorage.setItem("cached-all-words", JSON.stringify(serverData.allWords));
+  localStorage.setItem("cached-word-index", JSON.stringify(serverData.wordIndex));
   return { ...serverData, trackedIds };
 }
 

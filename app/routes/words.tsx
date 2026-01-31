@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useLoaderData, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/words";
-import { getWords, type HskVersion } from "~/lib/words.server";
+import { getWords, getWordIndex, type HskVersion } from "~/lib/words.server";
 import { WordList, type WordListPrefs } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
@@ -52,7 +52,8 @@ export function loader({ request }: Route.LoaderArgs) {
     searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
   };
 
-  return { words, allWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version };
+  const wordIndex = getWordIndex();
+  return { words, allWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version, wordIndex };
 }
 
 function getCachedVersion(): string | null {
@@ -102,6 +103,7 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
   // Cache miss — fetch from server and cache
   const serverData = await serverLoader();
   setCachedWords(serverData.version, serverData.allWords);
+  localStorage.setItem("cached-word-index", JSON.stringify(serverData.wordIndex));
   return { ...serverData, trackedIds };
 }
 
