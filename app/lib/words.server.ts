@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { HskWord, HskWordWithDeck, WordIndexEntry } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "app", "data");
+const DATA_DIR = path.join(process.cwd(), "data");
 const COMPLETE_PATH = path.join(DATA_DIR, "complete.json");
 const INDEX_PATH = path.join(DATA_DIR, "word-index.json");
 

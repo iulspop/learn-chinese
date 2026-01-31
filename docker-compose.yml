@@ -1,0 +1,14 @@
+services:
+  node:
+    image: ghcr.io/iulspop/learn-chinese-node:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - PYTHON_API_URL=http://python:5001
+    depends_on:
+      - python
+    restart: unless-stopped
+
+  python:
+    image: ghcr.io/iulspop/learn-chinese-python:latest
+    restart: unless-stopped

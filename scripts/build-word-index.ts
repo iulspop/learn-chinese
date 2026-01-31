@@ -3,8 +3,8 @@ import path from "node:path";
 
 const ROOT = path.join(import.meta.dirname, "..");
 const DECKS_DIR = path.join(ROOT, "decks");
-const OUTPUT_JSON = path.join(ROOT, "app", "data", "word-index.json");
-const OUTPUT_MEDIA = path.join(ROOT, "app", "data", "media");
+const OUTPUT_JSON = path.join(ROOT, "data", "word-index.json");
+const OUTPUT_MEDIA = path.join(ROOT, "data", "media");
 
 interface WordEntry {
   simplified: string;

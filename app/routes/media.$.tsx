@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Route } from "./+types/media.$";
 
-const MEDIA_DIR = path.join(process.cwd(), "app", "data", "media");
+const MEDIA_DIR = path.join(process.cwd(), "data", "media");
 
 const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",

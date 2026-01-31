@@ -17,5 +17,5 @@ __pycache__/
 /decks/Mandarin_HSK_1000-5000/
 
 # Build artifacts
-app/data/word-index.json
-app/data/media/
+data/word-index.json
+data/media/

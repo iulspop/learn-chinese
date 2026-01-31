@@ -9,12 +9,11 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-COMPLETE_PATH = os.path.join(BASE_DIR, "app", "data", "complete.json")
-TRACKED_PATH = os.path.join(BASE_DIR, "app", "data", "tracked-words.json")
-INDEX_PATH = os.path.join(BASE_DIR, "app", "data", "word-index.json")
-MEDIA_DIR = os.path.join(BASE_DIR, "app", "data", "media")
-OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"))
+COMPLETE_PATH = os.path.join(DATA_DIR, "complete.json")
+INDEX_PATH = os.path.join(DATA_DIR, "word-index.json")
+MEDIA_DIR = os.path.join(DATA_DIR, "media")
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 OUTPUT_PATH = os.path.join(OUTPUT_DIR, "hsk-vocabulary.apkg")
 
 MODEL_ID = 1607392319
@@ -281,11 +280,6 @@ def load_words():
     return words
 
 
-def load_tracked():
-    with open(TRACKED_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)["tracked"]
-
-
 def load_word_index():
     if not os.path.exists(INDEX_PATH):
         return {}
@@ -298,11 +292,11 @@ def export_anki():
     try:
         body = request.get_json(silent=True) or {}
         template_ids = body.get("templates")
+        tracked_ids = body.get("trackedWords", [])
 
         model = build_model(template_ids)
 
         all_words = load_words()
-        tracked_ids = load_tracked()
         tracked_words = [all_words[wid] for wid in tracked_ids if wid in all_words]
 
         if not tracked_words:
