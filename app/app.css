@@ -1145,6 +1145,10 @@ body {
     overflow-x: auto;
   }
 
+  .word-table {
+    min-width: 600px;
+  }
+
   .word-table th {
     padding: 0.5rem 0.4rem;
     font-size: 0.7rem;
