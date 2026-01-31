@@ -151,7 +151,7 @@ Use the word naturally in context. Aim for 6-15 characters per sentence.
 For each word, provide:
 1. sentence: The example sentence in simplified Chinese
 2. sentenceMeaning: English translation of the sentence
-3. imagePrompt: A short visual description of the scene for illustration (10-20 words, no text/words in image, describe a simple scene)
+3. imagePrompt: A short visual description for illustration (10-20 words, no text/words in image). Focus on the WORD's core meaning rather than the sentence — e.g. for "tree" just show a tree, for "Arabic" show Arabic calligraphy or symbols, for "happy" show a smiling face. Keep it iconic and simple.
 
 Return ONLY a JSON array with objects having keys: simplified, sentence, sentenceMeaning, imagePrompt
 
@@ -231,8 +231,8 @@ def generate_image_prompts(client: anthropic.Anthropic, entries: list[dict]) -> 
         max_tokens=4096,
         messages=[{
             "role": "user",
-            "content": f"""For each Chinese word and its example sentence below, generate a short visual description
-of the scene for illustration (10-20 words, no text/words in image, describe a simple scene).
+            "content": f"""For each Chinese word below, generate a short visual description for illustration (10-20 words, no text/words in image).
+Focus on the WORD's core meaning rather than the sentence — e.g. for "tree" just show a tree, for "Arabic" show Arabic calligraphy or symbols, for "happy" show a smiling face. Keep it iconic and simple.
 
 Return ONLY a JSON array with objects having keys: simplified, imagePrompt
 
@@ -313,6 +313,10 @@ def process_batch(
         sentence_pinyin_dict = get_dictionary_pinyin(sentence)
         sentence_pinyin_sandhi = get_sandhi_pinyin(sentence)
 
+        # Capitalize first letter of sentence pinyin
+        sentence_pinyin_dict = sentence_pinyin_dict[0].upper() + sentence_pinyin_dict[1:] if sentence_pinyin_dict else sentence_pinyin_dict
+        sentence_pinyin_sandhi = sentence_pinyin_sandhi[0].upper() + sentence_pinyin_sandhi[1:] if sentence_pinyin_sandhi else sentence_pinyin_sandhi
+
         # Build sentencePinyin field (with sandhi annotation if different)
         if sentence_pinyin_dict != sentence_pinyin_sandhi:
             sentence_pinyin = f"{sentence_pinyin_dict} Sandhi: {sentence_pinyin_sandhi}"
@@ -372,8 +376,10 @@ def main():
     parser.add_argument("--limit", type=int, help="Max words to generate")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be generated (sentences only, no audio/images)")
     parser.add_argument("--word", type=str, help="Generate for a single word")
+    parser.add_argument("--regenerate", action="store_true", help="Force regenerate even if word already exists in index (use with --word)")
     parser.add_argument("--skip-images", action="store_true", help="Skip image generation")
     parser.add_argument("--generate-missing-images", action="store_true", help="Generate images for entries that have no sentenceImage")
+    parser.add_argument("--fix-capitalization", action="store_true", help="Capitalize first letter of all sentencePinyin entries")
     args = parser.parse_args()
 
     # Check env vars
@@ -391,6 +397,21 @@ def main():
 
     hsk_words = load_hsk_words()
     index = load_word_index()
+
+    if args.fix_capitalization:
+        fixed = 0
+        for entry in index.values():
+            sp = entry.get("sentencePinyin", "")
+            if sp and sp[0].islower():
+                # Capitalize both dictionary and sandhi parts
+                parts = sp.split(" Sandhi: ")
+                parts = [p[0].upper() + p[1:] if p else p for p in parts]
+                entry["sentencePinyin"] = " Sandhi: ".join(parts)
+                fixed += 1
+        if fixed:
+            save_word_index(index)
+        print(f"Fixed capitalization for {fixed} entries")
+        return
 
     if args.generate_missing_images:
         entries_without_images = [
@@ -417,11 +438,16 @@ def main():
     print(f"Missing: {len(missing)}")
 
     if args.word:
+        if args.regenerate and args.word in index:
+            # Remove from index so it gets regenerated
+            del index[args.word]
+            save_word_index(index)
+            missing = find_missing(hsk_words, index)
         missing = [w for w in missing if w["simplified"] == args.word]
         if not missing:
             # Check if it's already in the index
             if args.word in index:
-                print(f"'{args.word}' already has card data")
+                print(f"'{args.word}' already has card data (use --regenerate to redo)")
             else:
                 print(f"'{args.word}' not found in HSK word list")
             return
