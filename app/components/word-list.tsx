@@ -31,22 +31,22 @@ const columns = [
       if (filterValue === "all") return true;
       return filterValue === "tracked" ? row.original.isTracked : !row.original.isTracked;
     },
-    meta: { className: "col-track" },
+    meta: { className: "col-track", gridWidth: "minmax(75px, 7%)" },
   }),
   columnHelper.accessor("character", {
     header: "Character",
     enableSorting: false,
-    meta: { className: "col-character" },
+    meta: { className: "col-character", gridWidth: "minmax(105px, 10%)" },
   }),
   columnHelper.accessor("pinyin", {
     header: "Pinyin",
     enableSorting: false,
-    meta: { className: "col-pinyin" },
+    meta: { className: "col-pinyin", gridWidth: "minmax(100px, 15%)" },
   }),
   columnHelper.accessor("meaning", {
     header: "Meaning",
     enableSorting: false,
-    meta: { className: "col-meaning" },
+    meta: { className: "col-meaning", gridWidth: "1fr" },
   }),
   columnHelper.accessor("hasIndex", {
     id: "hasIndex",
@@ -57,11 +57,11 @@ const columns = [
       if (filterValue === "all") return true;
       return filterValue === "has" ? row.original.hasIndex : !row.original.hasIndex;
     },
-    meta: { className: "col-deck" },
+    meta: { className: "col-deck", gridWidth: "minmax(50px, 6%)" },
   }),
   columnHelper.accessor("hskLevel", {
     header: "HSK",
-    meta: { className: "col-level" },
+    meta: { className: "col-level", gridWidth: "minmax(50px, 7%)" },
   }),
   columnHelper.accessor("frequency", {
     header: "Freq",
@@ -69,7 +69,7 @@ const columns = [
       const v = getValue();
       return v > 9999 ? "10k+" : v.toLocaleString();
     },
-    meta: { className: "col-freq" },
+    meta: { className: "col-freq", gridWidth: "minmax(55px, 7%)" },
   }),
 ];
 
@@ -184,6 +184,11 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
   });
 
   const { rows } = table.getRowModel();
+
+  const gridTemplateColumns = table
+    .getVisibleFlatColumns()
+    .map((col) => (col.columnDef.meta as { gridWidth?: string } | undefined)?.gridWidth ?? "1fr")
+    .join(" ");
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -343,18 +348,19 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
       </Popover.Root>
     </div>
     <div className="word-list-container" ref={scrollRef}>
-      <table className="word-table">
-        <thead>
+      <div className="word-table" role="table">
+        <div className="word-table-header" role="rowgroup">
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
+            <div className="word-table-row" role="row" key={headerGroup.id} style={{ gridTemplateColumns }}>
               {headerGroup.headers.map((header) => {
                 const meta = header.column.columnDef.meta as
                   | { className?: string }
                   | undefined;
                 return (
-                  <th
+                  <div
                     key={header.id}
-                    className={meta?.className}
+                    role="columnheader"
+                    className={`word-table-th ${meta?.className ?? ""}`}
                     onClick={header.column.getToggleSortingHandler()}
                     style={
                       header.column.getCanSort()
@@ -379,13 +385,15 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
                         </span>
                       )}
                     </span>
-                  </th>
+                  </div>
                 );
               })}
-            </tr>
+            </div>
           ))}
-        </thead>
-        <tbody
+        </div>
+        <div
+          className="word-table-body"
+          role="rowgroup"
           style={{
             height: `${virtualizer.getTotalSize()}px`,
             position: "relative",
@@ -395,12 +403,14 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
             const row = rows[virtualRow.index];
             const word = row.original;
             return (
-              <tr
+              <div
                 key={row.id}
+                role="row"
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
-                className={word.isTracked ? "tracked" : ""}
+                className={`word-table-row ${word.isTracked ? "tracked" : ""}`}
                 style={{
+                  gridTemplateColumns,
                   position: "absolute",
                   top: 0,
                   left: 0,
@@ -413,19 +423,19 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
                     | { className?: string }
                     | undefined;
                   return (
-                    <td key={cell.id} className={meta?.className}>
+                    <div key={cell.id} role="cell" className={`word-table-td ${meta?.className ?? ""}`}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
                       )}
-                    </td>
+                    </div>
                   );
                 })}
-              </tr>
+              </div>
             );
           })}
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
     </>
   );

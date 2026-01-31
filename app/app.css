@@ -332,28 +332,21 @@ body {
 
 .word-table {
   width: 100%;
-  border-collapse: collapse;
   font-size: 0.9rem;
 }
 
-.word-table tbody {
-  display: block;
+.word-table-row {
+  display: grid;
 }
 
-.word-table thead,
-.word-table tbody tr {
-  display: table;
-  width: 100%;
-}
-
-.word-table thead {
+.word-table-header {
   position: sticky;
   top: 0;
   background: #f9fafb;
   z-index: 1;
 }
 
-.word-table th {
+.word-table-th {
   text-align: left;
   padding: 0.85rem 0.75rem;
   font-weight: 600;
@@ -365,7 +358,7 @@ body {
   letter-spacing: 0.05em;
 }
 
-.word-table th:last-child {
+.word-table-th:last-child {
   border-right: none;
 }
 
@@ -380,53 +373,42 @@ body {
   opacity: 0.5;
 }
 
-.word-table td {
+.word-table-td {
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.word-table tbody tr:nth-child(even) {
+.word-table-row:nth-child(even) {
   background: #fafafa;
 }
 
-.word-table tbody tr.tracked {
+.word-table-row.tracked {
   background: #f0fdf4;
 }
 
-.word-table tbody tr:hover {
+.word-table-body .word-table-row:hover {
   background: #f0f9ff;
 }
 
 .col-track {
-  width: 5%;
   text-align: center;
 }
 
-.col-character {
-  width: 10%;
+.word-table-td.col-character {
   font-size: 1.1rem;
 }
 
-.col-pinyin {
-  width: 15%;
-}
-
-.col-meaning {
-  width: 50%;
-}
-
 .col-deck {
-  width: 6%;
   text-align: center;
 }
 
 .col-level {
-  width: 7%;
   text-align: center;
 }
 
 .col-freq {
-  width: 7%;
   text-align: right;
 }
 
@@ -1056,7 +1038,7 @@ body {
 }
 
 /* Mobile responsive */
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   /* Page containers */
   .words-page,
   .export-page {
@@ -1120,7 +1102,7 @@ body {
 
   /* Table toolbar: horizontal scroll */
   .table-toolbar {
-    justify-content: flex-start;
+    justify-content: flex-end;
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
@@ -1146,15 +1128,15 @@ body {
   }
 
   .word-table {
-    min-width: 600px;
+    min-width: 800px;
   }
 
-  .word-table th {
+  .word-table-th {
     padding: 0.5rem 0.4rem;
     font-size: 0.7rem;
   }
 
-  .word-table td {
+  .word-table-td {
     padding: 0.35rem 0.4rem;
   }
 
