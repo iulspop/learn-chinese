@@ -2,6 +2,7 @@
 build
 node_modules
 README.md
+data
 decks
 python-server
 output
