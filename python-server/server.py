@@ -216,7 +216,7 @@ ALL_TEMPLATES = {
         ),
     },
     "meaning-character": {
-        "name": "Meaning \u2192 Character",
+        "name": "Meaning \u2192 Character (Pinyin)",
         "qfmt": (
             '<div class="english">{{Meaning}}</div>'
             "{{#PartOfSpeech}}"

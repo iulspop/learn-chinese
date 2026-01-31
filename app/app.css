@@ -777,6 +777,12 @@ body {
   letter-spacing: 0.05em;
 }
 
+.export-config-note {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0 0 0.75rem;
+}
+
 .template-toggles {
   display: flex;
   gap: 1rem;
@@ -841,7 +847,14 @@ body {
   font-size: 0.95rem;
   font-weight: 600;
   color: #374151;
+  margin: 0 0 0.25rem;
+}
+
+.template-description {
+  font-size: 0.8rem;
+  color: #6b7280;
   margin: 0 0 1rem;
+  line-height: 1.4;
 }
 
 .card-preview-row {

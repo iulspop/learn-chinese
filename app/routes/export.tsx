@@ -56,6 +56,7 @@ function AudioButton({ src }: { src: string }) {
 interface CardTemplate {
   id: string;
   name: string;
+  description?: string;
   front: (w: WordWithTracking, idx?: WordIndexEntry) => React.ReactNode;
   back: (w: WordWithTracking, idx?: WordIndexEntry) => React.ReactNode;
 }
@@ -129,34 +130,9 @@ function SentenceBlockBack({ idx }: { idx?: WordIndexEntry }) {
 
 const TEMPLATES: CardTemplate[] = [
   {
-    id: "pinyin-meaning",
-    name: "Pinyin → Meaning",
-    front: (w, idx) => (
-      <>
-        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
-        {idx?.partOfSpeech && (
-          <div className="rc-description">{idx.partOfSpeech}</div>
-        )}
-        <hr />
-        <SentenceBlockFront idx={idx} />
-      </>
-    ),
-    back: (w, idx) => (
-      <>
-        <div className="rc-hanzi">{w.character}</div>
-        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
-        <div className="rc-english">{idx?.meaning || w.meaning}</div>
-        {idx?.partOfSpeech && (
-          <div className="rc-description">{idx.partOfSpeech}</div>
-        )}
-        <hr />
-        <SentenceBlockBack idx={idx} />
-      </>
-    ),
-  },
-  {
     id: "character-meaning",
     name: "Character → Meaning",
+    description: "The only card you need for a pure immersion approach \u2014 learning through thousands of hours of exposure to comprehensible input. This card provides enough memory scaffolding that you\u2019ll naturally acquire the rest (recall of pronunciation and characters) through immersion alone. Fewer card types means less time in Anki and more time immersing.",
     front: (w, idx) => (
       <>
         <div
@@ -186,8 +162,36 @@ const TEMPLATES: CardTemplate[] = [
     ),
   },
   {
+    id: "pinyin-meaning",
+    name: "Pinyin → Meaning",
+    description: "Helpful for immersion learners already familiar with some pinyin but not yet with characters. Good for an easier start with your first 100\u2013300 words \u2014 after that, focus on Character \u2192 Meaning as your sole card. Also useful for a skill-based approach focused on speaking practice.",
+    front: (w, idx) => (
+      <>
+        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
+        {idx?.partOfSpeech && (
+          <div className="rc-description">{idx.partOfSpeech}</div>
+        )}
+        <hr />
+        <SentenceBlockFront idx={idx} />
+      </>
+    ),
+    back: (w, idx) => (
+      <>
+        <div className="rc-hanzi">{w.character}</div>
+        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
+        <div className="rc-english">{idx?.meaning || w.meaning}</div>
+        {idx?.partOfSpeech && (
+          <div className="rc-description">{idx.partOfSpeech}</div>
+        )}
+        <hr />
+        <SentenceBlockBack idx={idx} />
+      </>
+    ),
+  },
+  {
     id: "meaning-character",
-    name: "Meaning → Character",
+    name: "Meaning \u2192 Character (Pinyin)",
+    description: "Useful for a skill-based approach to learning Chinese, e.g. focusing on speaking conversationally as quickly as possible through deliberate practice.",
     front: (w, idx) => (
       <>
         <div className="rc-english">{idx?.meaning || w.meaning}</div>
@@ -263,7 +267,7 @@ export default function ExportRoute() {
   const [enabledTemplates, setEnabledTemplates] = useState<
     Record<string, boolean>
   >(() =>
-    Object.fromEntries(TEMPLATES.map((t) => [t.id, true]))
+    Object.fromEntries(TEMPLATES.map((t) => [t.id, t.id === "character-meaning"]))
   );
 
   const selectedCount = Object.values(enabledTemplates).filter(Boolean).length;
@@ -326,6 +330,7 @@ export default function ExportRoute() {
         <>
           <div className="export-config">
             <h2 className="export-config-title">Card Types</h2>
+            <p className="export-config-note">Each card type tests a different kind of recall.</p>
             <div className="template-toggles">
               {TEMPLATES.map((template) => (
                 <div key={template.id} className="template-toggle" onClick={() => toggleTemplate(template.id)}>
@@ -362,6 +367,7 @@ export default function ExportRoute() {
               activeTemplates.map((template) => (
                 <div key={template.id} className="card-template-section">
                   <h2 className="template-name">{template.name}</h2>
+                  {template.description && <p className="template-description">{template.description}</p>}
                   <div className="card-preview-row">
                     <div className="card-preview">
                       <div className="card-label">Front</div>
