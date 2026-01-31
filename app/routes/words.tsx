@@ -50,6 +50,7 @@ export function loader({ request }: Route.LoaderArgs) {
     sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
     columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
     searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
+    pinTracked: parseCookie(cookieHeader, "wl-pin-tracked", true),
   };
 
   const wordIndex = getWordIndex();
@@ -126,6 +127,7 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
         sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
         columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
         searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
+        pinTracked: parseCookie(cookieHeader, "wl-pin-tracked", true),
       };
 
       return { words, allWords: cachedAllWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version, trackedIds };

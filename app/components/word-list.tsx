@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -11,7 +11,7 @@ import {
   type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check, Filter } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check, Filter, Pin } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { Checkbox } from "@base-ui/react/checkbox";
 import { Select } from "@base-ui/react/select";
@@ -26,7 +26,7 @@ const columns = [
     id: "track",
     header: "Track",
     cell: ({ row, table }) => <TrackCell word={row.original} onToggle={(table.options.meta as { onToggle: (id: string) => void }).onToggle} />,
-    enableSorting: false,
+    enableSorting: true,
     filterFn: (row, _columnId, filterValue: string) => {
       if (filterValue === "all") return true;
       return filterValue === "tracked" ? row.original.isTracked : !row.original.isTracked;
@@ -98,6 +98,7 @@ export interface WordListPrefs {
   sorting?: SortingState;
   columnFilters?: ColumnFiltersState;
   searchField?: SearchField;
+  pinTracked?: boolean;
 }
 
 export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTracking[]; prefs?: WordListPrefs; onToggle: (wordId: string) => void }) {
@@ -108,6 +109,7 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(prefs.columnFilters ?? []);
   const [globalFilter, setGlobalFilter] = useState("");
   const [searchField, setSearchField] = useState<SearchField>(prefs.searchField ?? "all");
+  const [pinTracked, setPinTracked] = useState(prefs.pinTracked ?? true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleSortingChange = (updater: SortingState | ((old: SortingState) => SortingState)) => {
@@ -141,10 +143,25 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
     saveCookie("wl-search-field", next);
   };
 
+  const handlePinTrackedToggle = () => {
+    setPinTracked((prev) => {
+      const next = !prev;
+      saveCookie("wl-pin-tracked", next);
+      return next;
+    });
+  };
+
+  const effectiveSorting = useMemo(
+    () => pinTracked
+      ? [{ id: "track", desc: true }, ...sorting.filter((s) => s.id !== "track")]
+      : sorting.filter((s) => s.id !== "track"),
+    [sorting, pinTracked],
+  );
+
   const table = useReactTable({
     data: words,
     columns,
-    state: { sorting, columnVisibility, columnFilters, globalFilter: `${searchField}:${globalFilter}` },
+    state: { sorting: effectiveSorting, columnVisibility, columnFilters, globalFilter: `${searchField}:${globalFilter}` },
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnFiltersChange: handleColumnFiltersChange,
@@ -315,6 +332,14 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
           </Select.Positioner>
         </Select.Portal>
       </Select.Root>
+      <button
+        type="button"
+        className={`pin-tracked-btn ${pinTracked ? "active" : ""}`}
+        onClick={handlePinTrackedToggle}
+        title={pinTracked ? "Tracked words pinned to top" : "Pin tracked words to top"}
+      >
+        <Pin size={14} />
+      </button>
       <Popover.Root>
         <Popover.Trigger className="columns-pill">
           <Settings2 size={14} />
@@ -362,9 +387,9 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
                     key={header.id}
                     role="columnheader"
                     className={`word-table-th ${meta?.className ?? ""}`}
-                    onClick={header.column.getToggleSortingHandler()}
+                    onClick={header.column.id !== "track" ? header.column.getToggleSortingHandler() : undefined}
                     style={
-                      header.column.getCanSort()
+                      header.column.getCanSort() && header.column.id !== "track"
                         ? { cursor: "pointer", userSelect: "none" }
                         : undefined
                     }
@@ -374,7 +399,7 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
                         header.column.columnDef.header,
                         header.getContext()
                       )}
-                      {header.column.getCanSort() && (
+                      {header.column.getCanSort() && header.column.id !== "track" && (
                         <span className="sort-indicator">
                           {header.column.getIsSorted() === "asc" ? (
                             <ArrowUp size={14} />
