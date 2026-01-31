@@ -62,6 +62,33 @@ cd python-server && uv run server.py
 
 The frontend runs at `http://localhost:5173` and the export server at `http://localhost:5001`.
 
+### 4. Generate missing card data (optional)
+
+~6,400 HSK words don't have deck cards. This script generates sentences, audio, and images for them using AI APIs.
+
+```bash
+cd scripts/generate-cards && uv sync
+```
+
+Create `scripts/generate-cards/.env` with:
+```
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/scripts/generate-cards/gcp-key.json
+STABILITY_API_KEY=sk-...
+```
+
+For `GOOGLE_APPLICATION_CREDENTIALS`, create a GCP service account with the Cloud Text-to-Speech API enabled and download the JSON key.
+
+```bash
+cd scripts/generate-cards
+
+uv run generate.py --dry-run         # Preview what would be generated
+uv run generate.py --word 爱国       # Generate for a single word
+uv run generate.py --limit 10        # Generate first 10 words
+uv run generate.py --skip-images     # Skip image generation
+uv run generate.py                   # Generate all missing words
+```
+
 ## Features
 
 - **Browse HSK vocabulary** by level (1-6, 7-9) with sortable columns and search

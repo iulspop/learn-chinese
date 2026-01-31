@@ -15,6 +15,7 @@ __pycache__/
 
 # Generate cards script
 /scripts/generate-cards/.venv/
+/scripts/generate-cards/gcp-key.json
 
 # Anki deck sources (see README for setup)
 /decks/Refold_Mandarin_1k_Simplified/

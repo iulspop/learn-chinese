@@ -26,12 +26,15 @@ import time
 import hashlib
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 import anthropic
 import httpx
 from google.cloud import texttospeech
 from pypinyin import lazy_pinyin, Style
-
-ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = ROOT / "data"
 COMPLETE_PATH = DATA_DIR / "complete.json"
 INDEX_PATH = DATA_DIR / "word-index.json"
@@ -41,7 +44,7 @@ CLAUDE_MODEL = "claude-sonnet-4-20250514"
 BATCH_SIZE = 20  # words per Claude API call
 TTS_VOICE = "cmn-CN-Wavenet-C"  # female WaveNet voice
 TTS_SPEAKING_RATE_WORD = 0.85
-TTS_SPEAKING_RATE_SENTENCE = 0.95
+TTS_SPEAKING_RATE_SENTENCE = 0.80
 SD_ENGINE = "sd3.5-medium"
 
 # Map abbreviated POS codes from complete.json to readable labels
@@ -200,7 +203,7 @@ def generate_image(api_key: str, prompt: str) -> bytes | None:
                 "prompt": f"Simple flat illustration, clean modern style, no text or words: {prompt}",
                 "model": SD_ENGINE,
                 "output_format": "jpeg",
-                "aspect_ratio": "4:3",
+                "aspect_ratio": "5:4",
             },
         )
         if response.status_code == 200:
@@ -214,6 +217,70 @@ def media_filename(word: str, suffix: str, ext: str) -> str:
     """Generate a deterministic filename for a media file."""
     h = hashlib.sha256(f"{word}:{suffix}".encode()).hexdigest()[:12]
     return f"gen_{h}.{ext}"
+
+
+def generate_image_prompts(client: anthropic.Anthropic, entries: list[dict]) -> list[dict]:
+    """Generate image prompts for existing entries that are missing images."""
+    word_list = "\n".join(
+        f"- {e['simplified']}: {e['sentence']} ({e['sentenceMeaning']})"
+        for e in entries
+    )
+
+    response = client.messages.create(
+        model=CLAUDE_MODEL,
+        max_tokens=4096,
+        messages=[{
+            "role": "user",
+            "content": f"""For each Chinese word and its example sentence below, generate a short visual description
+of the scene for illustration (10-20 words, no text/words in image, describe a simple scene).
+
+Return ONLY a JSON array with objects having keys: simplified, imagePrompt
+
+Words:
+{word_list}"""
+        }],
+    )
+
+    text = response.content[0].text
+    if "```json" in text:
+        text = text.split("```json")[1].split("```")[0]
+    elif "```" in text:
+        text = text.split("```")[1].split("```")[0]
+
+    return json.loads(text.strip())
+
+
+def process_missing_images(
+    entries: list[dict],
+    index: dict,
+    claude_client: anthropic.Anthropic,
+    stability_key: str,
+):
+    """Generate images for index entries that have no sentenceImage."""
+    print(f"\nGenerating image prompts for {len(entries)} words...")
+    prompts = generate_image_prompts(claude_client, entries)
+    prompt_map = {p["simplified"]: p["imagePrompt"] for p in prompts}
+
+    for entry in entries:
+        char = entry["simplified"]
+        image_prompt = prompt_map.get(char)
+        if not image_prompt:
+            print(f"  WARNING: No image prompt generated for {char}, skipping")
+            continue
+
+        print(f"  {char}: generating image...")
+        image_bytes = generate_image(stability_key, image_prompt)
+        if image_bytes:
+            image_file = media_filename(char, "image", "jpg")
+            MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+            (MEDIA_DIR / image_file).write_bytes(image_bytes)
+            index[char]["sentenceImage"] = image_file
+            save_word_index(index)
+            print(f"  {char}: done ✓")
+        else:
+            print(f"  {char}: image generation failed")
+
+        time.sleep(0.5)
 
 
 def process_batch(
@@ -306,6 +373,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Show what would be generated (sentences only, no audio/images)")
     parser.add_argument("--word", type=str, help="Generate for a single word")
     parser.add_argument("--skip-images", action="store_true", help="Skip image generation")
+    parser.add_argument("--generate-missing-images", action="store_true", help="Generate images for entries that have no sentenceImage")
     args = parser.parse_args()
 
     # Check env vars
@@ -323,6 +391,25 @@ def main():
 
     hsk_words = load_hsk_words()
     index = load_word_index()
+
+    if args.generate_missing_images:
+        entries_without_images = [
+            v for v in index.values()
+            if v.get("source") == "generated" and not v.get("sentenceImage")
+        ]
+        print(f"Entries missing images: {len(entries_without_images)}")
+        if not entries_without_images:
+            print("All generated entries have images!")
+            return
+
+        claude_client = anthropic.Anthropic()
+        stability_key = os.environ.get("STABILITY_API_KEY", "")
+
+        for i in range(0, len(entries_without_images), BATCH_SIZE):
+            batch = entries_without_images[i:i + BATCH_SIZE]
+            process_missing_images(batch, index, claude_client, stability_key)
+        return
+
     missing = find_missing(hsk_words, index)
 
     print(f"Total HSK words: {len(hsk_words)}")
