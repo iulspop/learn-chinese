@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useLoaderData, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/words";
-import { getWords, getAllWords, type HskVersion } from "~/lib/words.server";
+import { getWords, type HskVersion } from "~/lib/words.server";
 import { WordList, type WordListPrefs } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { computeFrequencyStats, computeCoverageCurve } from "~/lib/stats";
-import type { WordWithTracking } from "~/lib/types";
+import type { WordWithTracking, HskWordWithDeck } from "~/lib/types";
 
 const HSK_LEVELS_V3 = [1, 2, 3, 4, 5, 6, 7] as const;
 const HSK_LEVELS_V2 = [1, 2, 3, 4, 5, 6] as const;
@@ -41,8 +41,8 @@ export function loader({ request }: Route.LoaderArgs) {
   // If on a level that doesn't exist in this version, ignore the level filter
   const effectiveLevel = level && level <= maxLevel ? level : undefined;
 
-  const words = getWords(effectiveLevel, version);
-  const allWords = getAllWords(version);
+  const allWords = getWords(undefined, version);
+  const words = effectiveLevel ? allWords.filter((w) => w.hskLevel === effectiveLevel) : allWords;
 
   const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
   const wordListPrefs: WordListPrefs = {
@@ -55,10 +55,53 @@ export function loader({ request }: Route.LoaderArgs) {
   return { words, allWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version };
 }
 
-export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
-  const serverData = await serverLoader();
+function getCachedVersion(): string | null {
+  return localStorage.getItem("cached-hsk-version");
+}
+
+function getCachedAllWords(): HskWordWithDeck[] | null {
+  const raw = localStorage.getItem("cached-all-words");
+  return raw ? JSON.parse(raw) : null;
+}
+
+function setCachedWords(version: string, allWords: HskWordWithDeck[]) {
+  localStorage.setItem("cached-hsk-version", version);
+  localStorage.setItem("cached-all-words", JSON.stringify(allWords));
+}
+
+export async function clientLoader({ serverLoader, request }: Route.ClientLoaderArgs) {
+  const url = new URL(request.url);
+  const levelParam = url.searchParams.get("level");
+  const level = levelParam ? parseInt(levelParam, 10) : undefined;
+
+  const cookieHeader = document.cookie;
+  const version = parseCookieRaw(cookieHeader, "hsk-version", "3.0") as HskVersion;
+  const cachedVersion = getCachedVersion();
+  const cachedAllWords = getCachedAllWords();
+
   const raw = localStorage.getItem("tracked-words");
   const trackedIds: string[] = raw ? JSON.parse(raw) : [];
+
+  if (cachedVersion === version && cachedAllWords) {
+    // Cache hit — skip server call, read prefs from cookies client-side
+    const maxLevel = version === "2.0" ? 6 : 7;
+    const effectiveLevel = level && level <= maxLevel ? level : undefined;
+    const words = effectiveLevel ? cachedAllWords.filter((w) => w.hskLevel === effectiveLevel) : cachedAllWords;
+
+    const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
+    const wordListPrefs: WordListPrefs = {
+      columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", {}),
+      sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
+      columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
+      searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
+    };
+
+    return { words, allWords: cachedAllWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version, trackedIds };
+  }
+
+  // Cache miss — fetch from server and cache
+  const serverData = await serverLoader();
+  setCachedWords(serverData.version, serverData.allWords);
   return { ...serverData, trackedIds };
 }
 
