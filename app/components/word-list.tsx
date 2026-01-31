@@ -10,9 +10,11 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { Checkbox } from "@base-ui/react/checkbox";
+import { Select } from "@base-ui/react/select";
+import { Input } from "@base-ui/react/input";
 import type { WordWithTracking } from "~/lib/types";
 import { TrackCell } from "./word-list-item";
 
@@ -137,22 +139,41 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
     <div className="table-toolbar">
       <div className="search-box">
         <Search size={14} className="search-icon" />
-        <select
-          className="search-field-select"
+        <Select.Root
           value={searchField}
-          onChange={(e) => setSearchField(e.target.value as typeof searchField)}
+          onValueChange={(val) => setSearchField(val as typeof searchField)}
         >
-          <option value="all">All</option>
-          <option value="character">Character</option>
-          <option value="pinyin">Pinyin</option>
-          <option value="meaning">Meaning</option>
-        </select>
-        <input
-          type="text"
+          <Select.Trigger className="search-field-trigger">
+            <Select.Value />
+            <Select.Icon className="search-field-icon">
+              <ChevronDown size={12} />
+            </Select.Icon>
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Positioner side="bottom" align="start" sideOffset={4} className="search-field-positioner">
+              <Select.Popup className="search-field-popup">
+                {[
+                  { value: "all", label: "All" },
+                  { value: "character", label: "Character" },
+                  { value: "pinyin", label: "Pinyin" },
+                  { value: "meaning", label: "Meaning" },
+                ].map((opt) => (
+                  <Select.Item key={opt.value} value={opt.value} className="search-field-item">
+                    <Select.ItemIndicator className="search-field-indicator">
+                      <Check size={12} />
+                    </Select.ItemIndicator>
+                    <Select.ItemText>{opt.label}</Select.ItemText>
+                  </Select.Item>
+                ))}
+              </Select.Popup>
+            </Select.Positioner>
+          </Select.Portal>
+        </Select.Root>
+        <Input
           className="search-input"
           placeholder={searchField === "all" ? "Search words..." : `Search ${searchField}...`}
           value={globalFilter}
-          onChange={(e) => setGlobalFilter(e.target.value)}
+          onChange={(e) => setGlobalFilter((e.target as HTMLInputElement).value)}
         />
       </div>
       <Popover.Root>
