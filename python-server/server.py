@@ -1,5 +1,5 @@
-import json
 import os
+import sqlite3
 import tempfile
 import hashlib
 import glob
@@ -11,8 +11,7 @@ app = Flask(__name__)
 CORS(app)
 
 DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data"))
-COMPLETE_PATH = os.path.join(DATA_DIR, "complete.json")
-INDEX_PATH = os.path.join(DATA_DIR, "word-index.json")
+DB_PATH = os.path.join(DATA_DIR, "words.db")
 MEDIA_DIR = os.path.join(DATA_DIR, "media")
 
 MODEL_ID = 1607392319
@@ -153,7 +152,7 @@ SENTENCE_BLOCK_BACK = (
     "{{#Audio}}{{Audio}}{{/Audio}}"
     "{{#SentenceAudio}} {{SentenceAudio}}{{/SentenceAudio}}"
     "<br>"
-    "{{#SentenceImage}}<div class=\"image\">{{SentenceImage}}</div>{{/SentenceImage}}"
+    '{{#SentenceImage}}<div class="image">{{SentenceImage}}</div>{{/SentenceImage}}'
 )
 
 HSK_FIELDS = [
@@ -259,50 +258,53 @@ def stable_guid(word_id: str, mode: str) -> str:
     return h[:10]
 
 
-def parse_level(level_str: str):
-    if level_str.startswith("new-"):
-        try:
-            return int(level_str[4:])
-        except ValueError:
-            return None
-    return None
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def load_words():
-    with open(COMPLETE_PATH, "r", encoding="utf-8") as f:
-        raw = json.load(f)
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT simplified, pinyin, meaning, hsk_level_v3 AS hsk_level FROM words WHERE hsk_level_v3 IS NOT NULL"
+    ).fetchall()
+    conn.close()
 
     words = {}
-    for entry in raw:
-        new_level = None
-        for lv in entry.get("level", []):
-            parsed = parse_level(lv)
-            if parsed is not None:
-                new_level = parsed
-                break
-        if new_level is None:
-            continue
-
-        form = entry["forms"][0] if entry.get("forms") else None
-        if not form:
-            continue
-
-        word_id = entry["simplified"]
+    for row in rows:
+        word_id = row["simplified"]
         words[word_id] = {
             "id": word_id,
             "character": word_id,
-            "pinyin": form["transcriptions"]["pinyin"],
-            "meaning": "; ".join(form["meanings"]),
-            "hsk_level": new_level,
+            "pinyin": row["pinyin"],
+            "meaning": row["meaning"],
+            "hsk_level": row["hsk_level"],
         }
     return words
 
 
 def load_word_index():
-    if not os.path.exists(INDEX_PATH):
-        return {}
-    with open(INDEX_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    conn = get_db()
+    rows = conn.execute("SELECT * FROM word_cards").fetchall()
+    conn.close()
+
+    index = {}
+    for row in rows:
+        index[row["simplified"]] = {
+            "simplified": row["simplified"],
+            "pinyin": row["pinyin"] or "",
+            "meaning": row["meaning"] or "",
+            "partOfSpeech": row["part_of_speech"] or "",
+            "audio": row["audio"] or "",
+            "sentence": row["sentence"] or "",
+            "sentencePinyin": row["sentence_pinyin"] or "",
+            "sentenceMeaning": row["sentence_meaning"] or "",
+            "sentenceAudio": row["sentence_audio"] or "",
+            "sentenceImage": row["sentence_image"] or "",
+            "source": row["card_source"] or "",
+        }
+    return index
 
 
 @app.route("/export-anki", methods=["POST"])

@@ -1,17 +1,20 @@
-import fs from "node:fs";
 import path from "node:path";
+import Database from "better-sqlite3";
 import type { HskWord, HskWordWithDeck, WordIndexEntry } from "./types";
 
 export type HskVersion = "2.0" | "3.0";
 
 const DATA_DIR = path.join(process.cwd(), "data");
-const COMPLETE_PATH = path.join(DATA_DIR, "complete.json");
-const INDEX_PATH = path.join(DATA_DIR, "word-index.json");
+const DB_PATH = path.join(DATA_DIR, "words.db");
 
-function parseLevel(levelStr: string, version: HskVersion): number | null {
-  const prefix = version === "2.0" ? "old" : "new";
-  const match = levelStr.match(new RegExp(`^${prefix}-(\\d+)$`));
-  return match ? parseInt(match[1], 10) : null;
+let db: ReturnType<typeof Database> | null = null;
+
+function getDb() {
+  if (!db) {
+    db = new Database(DB_PATH, { readonly: true });
+    db.pragma("journal_mode = WAL");
+  }
+  return db;
 }
 
 const cachedWords = new Map<HskVersion, HskWord[]>();
@@ -20,38 +23,31 @@ export function getAllWords(version: HskVersion = "3.0"): HskWord[] {
   const cached = cachedWords.get(version);
   if (cached) return cached;
 
-  const raw = JSON.parse(fs.readFileSync(COMPLETE_PATH, "utf-8")) as Array<{
+  const col = version === "2.0" ? "hsk_level_v2" : "hsk_level_v3";
+  const rows = getDb()
+    .prepare(
+      `SELECT simplified, pinyin, meaning, ${col} AS hsk_level, frequency
+       FROM words
+       WHERE ${col} IS NOT NULL
+       ORDER BY ${col}, pinyin`
+    )
+    .all() as Array<{
     simplified: string;
+    pinyin: string;
+    meaning: string;
+    hsk_level: number;
     frequency: number;
-    level: string[];
-    forms: Array<{
-      transcriptions: { pinyin: string };
-      meanings: string[];
-    }>;
   }>;
 
-  const words: HskWord[] = [];
+  const words: HskWord[] = rows.map((r) => ({
+    id: r.simplified,
+    character: r.simplified,
+    pinyin: r.pinyin,
+    meaning: r.meaning,
+    hskLevel: r.hsk_level,
+    frequency: r.frequency,
+  }));
 
-  for (const entry of raw) {
-    const level = entry.level
-      .map((l) => parseLevel(l, version))
-      .find((l): l is number => l !== null);
-    if (level == null) continue;
-
-    const form = entry.forms[0];
-    if (!form) continue;
-
-    words.push({
-      id: entry.simplified,
-      character: entry.simplified,
-      pinyin: form.transcriptions.pinyin,
-      meaning: form.meanings.join("; "),
-      hskLevel: level,
-      frequency: entry.frequency,
-    });
-  }
-
-  words.sort((a, b) => a.hskLevel - b.hskLevel || a.pinyin.localeCompare(b.pinyin));
   cachedWords.set(version, words);
   return words;
 }
@@ -71,7 +67,40 @@ let cachedIndex: Record<string, WordIndexEntry> | null = null;
 
 export function getWordIndex(): Record<string, WordIndexEntry> {
   if (cachedIndex) return cachedIndex;
-  if (!fs.existsSync(INDEX_PATH)) return {};
-  cachedIndex = JSON.parse(fs.readFileSync(INDEX_PATH, "utf-8"));
-  return cachedIndex!;
+
+  const rows = getDb()
+    .prepare("SELECT * FROM word_cards")
+    .all() as Array<{
+    simplified: string;
+    pinyin: string;
+    meaning: string;
+    part_of_speech: string;
+    audio: string;
+    sentence: string;
+    sentence_pinyin: string;
+    sentence_meaning: string;
+    sentence_audio: string;
+    sentence_image: string;
+    card_source: string;
+  }>;
+
+  const index: Record<string, WordIndexEntry> = {};
+  for (const r of rows) {
+    index[r.simplified] = {
+      simplified: r.simplified,
+      pinyin: r.pinyin ?? "",
+      meaning: r.meaning ?? "",
+      partOfSpeech: r.part_of_speech ?? "",
+      audio: r.audio ?? "",
+      sentence: r.sentence ?? "",
+      sentencePinyin: r.sentence_pinyin ?? "",
+      sentenceMeaning: r.sentence_meaning ?? "",
+      sentenceAudio: r.sentence_audio ?? "",
+      sentenceImage: r.sentence_image ?? "",
+      source: r.card_source ?? "",
+    };
+  }
+
+  cachedIndex = index;
+  return cachedIndex;
 }

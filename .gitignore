@@ -23,4 +23,7 @@ __pycache__/
 
 # Build artifacts
 data/word-index.json
+data/words.db
+data/words.db-shm
+data/words.db-wal
 data/media/
