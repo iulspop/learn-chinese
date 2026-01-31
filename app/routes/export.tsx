@@ -270,11 +270,7 @@ export default function ExportRoute() {
   const totalCards = trackedWordsList.length * selectedCount;
 
   const toggleTemplate = (id: string) => {
-    setEnabledTemplates((prev) => {
-      const next = { ...prev, [id]: !prev[id] };
-      if (Object.values(next).every((v) => !v)) return prev;
-      return next;
-    });
+    setEnabledTemplates((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleExport = useCallback(async () => {
@@ -332,7 +328,7 @@ export default function ExportRoute() {
             <h2 className="export-config-title">Card Types</h2>
             <div className="template-toggles">
               {TEMPLATES.map((template) => (
-                <label key={template.id} className="template-toggle" onClick={() => toggleTemplate(template.id)}>
+                <div key={template.id} className="template-toggle" onClick={() => toggleTemplate(template.id)}>
                   <Checkbox.Root
                     className="template-checkbox"
                     checked={enabledTemplates[template.id]}
@@ -344,7 +340,7 @@ export default function ExportRoute() {
                     </Checkbox.Indicator>
                   </Checkbox.Root>
                   {template.name}
-                </label>
+                </div>
               ))}
             </div>
           </div>
@@ -358,25 +354,31 @@ export default function ExportRoute() {
           </div>
 
           <div className="card-templates">
-            {activeTemplates.map((template) => (
-              <div key={template.id} className="card-template-section">
-                <h2 className="template-name">{template.name}</h2>
-                <div className="card-preview-row">
-                  <div className="card-preview">
-                    <div className="card-label">Front</div>
-                    <div className="anki-card">
-                      {sampleWord && template.front(sampleWord, sampleIndex)}
+            {activeTemplates.length === 0 ? (
+              <div className="card-templates-empty">
+                <p>No card types selected. Enable at least one above to preview and export.</p>
+              </div>
+            ) : (
+              activeTemplates.map((template) => (
+                <div key={template.id} className="card-template-section">
+                  <h2 className="template-name">{template.name}</h2>
+                  <div className="card-preview-row">
+                    <div className="card-preview">
+                      <div className="card-label">Front</div>
+                      <div className="anki-card">
+                        {sampleWord && template.front(sampleWord, sampleIndex)}
+                      </div>
                     </div>
-                  </div>
-                  <div className="card-preview">
-                    <div className="card-label">Back</div>
-                    <div className="anki-card">
-                      {sampleWord && template.back(sampleWord, sampleIndex)}
+                    <div className="card-preview">
+                      <div className="card-label">Back</div>
+                      <div className="anki-card">
+                        {sampleWord && template.back(sampleWord, sampleIndex)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="export-action">
@@ -384,7 +386,7 @@ export default function ExportRoute() {
               type="button"
               className="export-confirm-btn"
               onClick={handleExport}
-              disabled={toast?.type === "pending"}
+              disabled={toast?.type === "pending" || selectedCount === 0}
             >
               {toast?.type === "pending"
                 ? "Exporting..."

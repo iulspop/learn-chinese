@@ -816,6 +816,13 @@ body {
   line-height: 1;
 }
 
+.card-templates-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
 .card-templates {
   display: flex;
   flex-direction: column;
