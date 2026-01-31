@@ -242,10 +242,7 @@ export default function WordsRoute() {
     if (ids.length === 0) return;
     const encoded = btoa(encodeURIComponent(ids.join(",")));
     const url = `${window.location.origin}/words?share=${encoded}`;
-    navigator.clipboard.writeText(url).then(
-      () => setShareToast({ type: "success", message: "Share link copied to clipboard" }),
-      () => setShareToast({ type: "error", message: "Failed to copy link" }),
-    );
+    navigator.clipboard.writeText(url);
   }, [trackedWords]);
 
   const handleGenerateSelected = useCallback(async () => {
@@ -305,14 +302,6 @@ export default function WordsRoute() {
         <div className="header-info">
           <span className="tracked-badge">{trackedCount} words tracked</span>
           <AddWordDialog existingWords={allWords} />
-          <button
-            type="button"
-            className="share-list-btn"
-            onClick={handleCopyShareLink}
-            disabled={trackedCount === 0}
-          >
-            Share List
-          </button>
           <Link to="/export" className="export-btn">
             Export to Anki
           </Link>
@@ -378,6 +367,7 @@ export default function WordsRoute() {
         selectionMode
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
+        onShareList={handleCopyShareLink}
       />
 
       {selectedIds.size > 0 && !isGenerating && (

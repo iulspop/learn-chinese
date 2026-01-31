@@ -11,7 +11,7 @@ import {
   type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check, Filter, Pin } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check, Filter, Pin, Share2 } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { Checkbox } from "@base-ui/react/checkbox";
 import { Select } from "@base-ui/react/select";
@@ -119,13 +119,36 @@ export interface WordListPrefs {
   pinTracked?: boolean;
 }
 
-export function WordList({ words, prefs = {}, onToggle, selectionMode = false, selectedIds, onSelectionChange }: {
+function ShareLinkButton({ onShareList }: { onShareList: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const handleClick = () => {
+    onShareList();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <span className="share-link-wrapper">
+      <button
+        type="button"
+        className="share-list-btn"
+        onClick={handleClick}
+        title="Copy share link"
+      >
+        <Share2 size={14} />
+      </button>
+      {copied && <span className="share-copied-tooltip">Copied!</span>}
+    </span>
+  );
+}
+
+export function WordList({ words, prefs = {}, onToggle, selectionMode = false, selectedIds, onSelectionChange, onShareList }: {
   words: WordWithTracking[];
   prefs?: WordListPrefs;
   onToggle: (wordId: string) => void;
   selectionMode?: boolean;
   selectedIds?: Set<string>;
   onSelectionChange?: (ids: Set<string>) => void;
+  onShareList?: () => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>(
     prefs.sorting ?? [{ id: "frequency", desc: false }],
@@ -420,6 +443,9 @@ export function WordList({ words, prefs = {}, onToggle, selectionMode = false, s
           </Popover.Positioner>
         </Popover.Portal>
       </Popover.Root>
+      {onShareList && (
+        <ShareLinkButton onShareList={onShareList} />
+      )}
     </div>
     <div className="word-list-container" ref={scrollRef}>
       <div className="word-table" role="table">

@@ -1440,26 +1440,46 @@ body {
   cursor: not-allowed;
 }
 
-/* Share List button */
+/* Share List button (toolbar icon) */
 .share-list-btn {
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: #f3f4f6;
   border: 1px solid #d1d5db;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  border-radius: 999px;
+  color: #9ca3af;
   cursor: pointer;
-  font-weight: 500;
-  color: #374151;
-  font-family: inherit;
+  transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .share-list-btn:hover {
-  background: #f3f4f6;
+  color: #374151;
+  background: #e5e7eb;
 }
 
-.share-list-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.share-link-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.share-copied-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #fff;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
 }
 
 /* Selection checkbox column */
