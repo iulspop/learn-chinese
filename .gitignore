@@ -13,6 +13,9 @@
 /python-server/output/
 __pycache__/
 
+# Generate cards script
+/scripts/generate-cards/.venv/
+
 # Anki deck sources (see README for setup)
 /decks/Refold_Mandarin_1k_Simplified/
 /decks/Mandarin_HSK_1000-5000/
