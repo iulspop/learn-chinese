@@ -1492,15 +1492,19 @@ body {
   justify-content: center;
 }
 
+.word-table-th.col-select {
+  border-bottom: 2px solid #e5e7eb;
+}
+
 .select-checkbox {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 18px;
+  height: 18px;
   border: 2px solid #d1d5db;
-  border-radius: 6px;
-  background: none;
+  border-radius: 4px;
+  background: #fff;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.15s;
@@ -1526,7 +1530,7 @@ body {
 
 .select-checkbox-indicator {
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 12px;
   line-height: 1;
 }
 
