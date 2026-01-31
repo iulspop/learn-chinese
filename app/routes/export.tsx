@@ -272,18 +272,17 @@ export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
   try {
     const db = await openCacheDB();
     const version = document.cookie.match(/(?:^|;\s*)hsk-version=([^;]*)/)?.[1] ?? "3.0";
-    const [cachedVersion, cachedAllWords, cachedWordIndex] = await Promise.all([
-      idbGet<string>(db, "hsk-version"),
-      idbGet<HskWordWithDeck[]>(db, "all-words"),
-      idbGet<Record<string, WordIndexEntry>>(db, "word-index"),
+    const [cachedAllWords, cachedWordIndex] = await Promise.all([
+      idbGet<HskWordWithDeck[]>(db, `all-words-${version}`),
+      idbGet<Record<string, WordIndexEntry>>(db, `word-index-${version}`),
     ]);
 
-    if (cachedVersion === version && cachedAllWords && cachedWordIndex) {
+    if (cachedAllWords && cachedWordIndex) {
       return { allWords: cachedAllWords, wordIndex: cachedWordIndex, trackedIds };
     }
 
     const serverData = await serverLoader();
-    await idbPut(db, { "hsk-version": version, "all-words": serverData.allWords, "word-index": serverData.wordIndex });
+    idbPut(db, { [`all-words-${version}`]: serverData.allWords, [`word-index-${version}`]: serverData.wordIndex });
     return { ...serverData, trackedIds };
   } catch {
     const serverData = await serverLoader();

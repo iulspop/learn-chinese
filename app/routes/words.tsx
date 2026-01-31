@@ -150,12 +150,9 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
     }
 
     const db = await openCacheDB();
-    const [cachedVersion, cachedAllWords] = await Promise.all([
-      idbGet<string>(db, "hsk-version"),
-      idbGet<HskWordWithDeck[]>(db, "all-words"),
-    ]);
+    const cachedAllWords = await idbGet<HskWordWithDeck[]>(db, `all-words-${version}`);
 
-    if (cachedVersion === version && cachedAllWords) {
+    if (cachedAllWords) {
       const maxLevel = version === "2.0" ? 6 : 7;
       const effectiveLevel = level === "custom" ? "custom" as const : (typeof level === "number" && level <= maxLevel ? level : undefined);
       const words = effectiveLevel === "custom"
@@ -177,7 +174,7 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
     }
 
     const serverData = await serverLoader();
-    await idbPut(db, { "hsk-version": serverData.version, "all-words": serverData.allWords, "word-index": serverData.wordIndex });
+    idbPut(db, { [`all-words-${version}`]: serverData.allWords, [`word-index-${version}`]: serverData.wordIndex });
     return { ...serverData, trackedIds };
   } catch {
     // IndexedDB unavailable — fall back to server
