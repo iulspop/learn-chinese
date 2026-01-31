@@ -139,10 +139,19 @@ body {
 
 .table-toolbar {
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
+}
+
+.table-row-count {
+  font-size: 0.8rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.toolbar-spacer {
+  flex: 1;
 }
 
 .search-box {
@@ -1100,16 +1109,13 @@ body {
     font-size: 0.75rem;
   }
 
-  /* Table toolbar: horizontal scroll */
-  .table-toolbar {
-    justify-content: flex-end;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-  }
-
+  /* Table toolbar */
   .table-toolbar > * {
     flex-shrink: 0;
+  }
+
+  .toolbar-spacer {
+    flex-shrink: 1;
   }
 
   .search-input {

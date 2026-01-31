@@ -201,6 +201,8 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
   return (
     <>
     <div className="table-toolbar">
+      <span className="table-row-count">{rows.length.toLocaleString()} words</span>
+      <div className="toolbar-spacer" />
       <div className="search-box">
         <Search size={14} className="search-icon" />
         <Select.Root
