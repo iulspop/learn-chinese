@@ -2,3 +2,9 @@
 build
 node_modules
 README.md
+decks
+python-server
+output
+.git
+.gitignore
+.claude
