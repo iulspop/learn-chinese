@@ -7,10 +7,10 @@ REMOTE_DIR="${DEPLOY_DIR:-/home/nodejs/learn-chinese}"
 WEBHOOK_URL="https://polyanova.com/hooks/learn-chinese"
 
 echo "Building node image..."
-docker build -t "$REGISTRY/learn-chinese-node:latest" .
+docker build --platform linux/amd64 -t "$REGISTRY/learn-chinese-node:latest" .
 
 echo "Building python image..."
-docker build -t "$REGISTRY/learn-chinese-python:latest" python-server/
+docker build --platform linux/amd64 -t "$REGISTRY/learn-chinese-python:latest" python-server/
 
 echo "Pushing images..."
 docker push "$REGISTRY/learn-chinese-node:latest"
