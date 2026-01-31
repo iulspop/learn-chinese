@@ -788,11 +788,32 @@ body {
   gap: 0.4rem;
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+.template-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
   user-select: none;
 }
 
-.template-toggle input[type="checkbox"] {
-  accent-color: #0369a1;
+.template-checkbox[data-checked] {
+  background: #0369a1;
+  border-color: #0369a1;
+}
+
+.template-checkbox-indicator {
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .card-templates {

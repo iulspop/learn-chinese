@@ -4,6 +4,7 @@ import type { Route } from "./+types/export";
 import { getWords, getWordIndex, type HskVersion } from "~/lib/words.server";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { Toast, type ToastData } from "~/components/toast";
+import { Checkbox } from "@base-ui/react/checkbox";
 import type { WordWithTracking, WordIndexEntry } from "~/lib/types";
 
 function AudioButton({ src }: { src: string }) {
@@ -307,12 +308,17 @@ export default function ExportRoute() {
             <h2 className="export-config-title">Card Types</h2>
             <div className="template-toggles">
               {TEMPLATES.map((template) => (
-                <label key={template.id} className="template-toggle">
-                  <input
-                    type="checkbox"
+                <label key={template.id} className="template-toggle" onClick={() => toggleTemplate(template.id)}>
+                  <Checkbox.Root
+                    className="template-checkbox"
                     checked={enabledTemplates[template.id]}
-                    onChange={() => toggleTemplate(template.id)}
-                  />
+                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={() => toggleTemplate(template.id)}
+                  >
+                    <Checkbox.Indicator className="template-checkbox-indicator">
+                      &#10003;
+                    </Checkbox.Indicator>
+                  </Checkbox.Root>
                   {template.name}
                 </label>
               ))}
