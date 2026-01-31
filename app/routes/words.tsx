@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useLoaderData, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/words";
 import { getWords, getWordIndex, addCustomWord, type HskVersion } from "~/lib/words.server";
@@ -6,7 +6,9 @@ import { WordList, type WordListPrefs } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
 import { AddWordDialog } from "~/components/add-word-dialog";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
+import { useGenerateCards } from "~/hooks/use-generate-cards";
 import { computeFrequencyStats, computeCoverageCurve } from "~/lib/stats";
+import { Toast } from "~/components/toast";
 import type { WordWithTracking, HskWordWithDeck } from "~/lib/types";
 
 const HSK_LEVELS_V3 = [1, 2, 3, 4, 5, 6, 7] as const;
@@ -70,7 +72,7 @@ export function loader({ request }: Route.LoaderArgs) {
 
   const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
   const wordListPrefs: WordListPrefs = {
-    columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", { hasIndex: false, hskLevel: false, frequency: false }),
+    columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", { hskLevel: false, frequency: false }),
     sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
     columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
     searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
@@ -165,7 +167,7 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
 
       const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
       const wordListPrefs: WordListPrefs = {
-        columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", { hasIndex: false, hskLevel: false, frequency: false }),
+        columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", { hskLevel: false, frequency: false }),
         sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
         columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
         searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
@@ -208,8 +210,20 @@ export function HydrateFallback() {
 export default function WordsRoute() {
   const { words, allWords, currentLevel, freqView, wordListPrefs, version } = useLoaderData<typeof clientLoader>();
   const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
+  const { generate, progress, isGenerating, error: genError } = useGenerateCards();
   const navigate = useNavigate();
   const hskLevels = version === "2.0" ? HSK_LEVELS_V2 : HSK_LEVELS_V3;
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const handleGenerateSelected = useCallback(async () => {
+    const selectedWords = words
+      .filter((w) => selectedIds.has(w.id))
+      .map((w) => ({ simplified: w.character, pinyin: w.pinyin, meaning: w.meaning }));
+    if (selectedWords.length === 0) return;
+    await generate(selectedWords);
+    setSelectedIds(new Set());
+  }, [selectedIds, words, generate]);
 
   const hasCustomWords = useMemo(() => allWords.some((w) => w.hskLevel === null), [allWords]);
 
@@ -317,7 +331,42 @@ export default function WordsRoute() {
         <FrequencyCoverage stats={frequencyStats} coverageCurve={coverageCurve} initialView={freqView} isHsk7={currentLevel === 7} />
       )}
 
-      <WordList words={wordsWithTracking} prefs={wordListPrefs} onToggle={toggleWord} />
+      <WordList
+        words={wordsWithTracking}
+        prefs={wordListPrefs}
+        onToggle={toggleWord}
+        selectionMode
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+      />
+
+      {selectedIds.size > 0 && !isGenerating && (
+        <div className="floating-action-bar">
+          <span>{selectedIds.size} selected</span>
+          <button type="button" className="fab-generate" onClick={handleGenerateSelected}>
+            Generate
+          </button>
+          <button type="button" className="fab-cancel" onClick={() => setSelectedIds(new Set())}>
+            Clear
+          </button>
+        </div>
+      )}
+
+      {isGenerating && progress && (
+        <Toast
+          type="pending"
+          message={`Generating ${progress.done}/${progress.total}${progress.current ? ` — ${progress.current}` : ""}...`}
+          onDismiss={() => {}}
+        />
+      )}
+
+      {!isGenerating && genError && (
+        <Toast
+          type="error"
+          message={genError}
+          onDismiss={() => {}}
+        />
+      )}
     </div>
   );
 }

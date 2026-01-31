@@ -5,5 +5,6 @@ export default [
   route("words", "routes/words.tsx"),
   route("export", "routes/export.tsx"),
   route("api/export-anki", "routes/api.export-anki.ts"),
+  route("api/generate-cards", "routes/api.generate-cards.ts"),
   route("media/*", "routes/media.$.tsx"),
 ] satisfies RouteConfig;

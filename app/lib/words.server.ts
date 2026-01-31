@@ -94,6 +94,11 @@ export function addCustomWord(simplified: string, pinyin: string, meaning: strin
 
 let cachedIndex: Record<string, WordIndexEntry> | null = null;
 
+export function clearWordIndexCache() {
+  cachedIndex = null;
+  cachedWords.clear();
+}
+
 export function getWordIndex(): Record<string, WordIndexEntry> {
   if (cachedIndex) return cachedIndex;
 

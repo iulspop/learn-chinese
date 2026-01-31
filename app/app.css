@@ -1439,3 +1439,106 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Selection checkbox column */
+.col-select {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.col-select input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Floating action bar */
+.floating-action-bar {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+  font-size: 0.875rem;
+}
+
+.fab-generate {
+  background: #0369a1;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.fab-generate:hover {
+  background: #075985;
+}
+
+.fab-cancel {
+  background: none;
+  border: 1px solid #6b7280;
+  color: #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.fab-cancel:hover {
+  border-color: #d1d5db;
+}
+
+/* Export page generate buttons */
+.generate-single-btn {
+  background: #0369a1;
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.generate-single-btn:hover {
+  background: #075985;
+}
+
+.generate-single-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.generate-missing-btn {
+  background: #0369a1;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+.generate-missing-btn:hover {
+  background: #075985;
+}
+
+.generate-missing-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -119,11 +119,18 @@ export interface WordListPrefs {
   pinTracked?: boolean;
 }
 
-export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTracking[]; prefs?: WordListPrefs; onToggle: (wordId: string) => void }) {
+export function WordList({ words, prefs = {}, onToggle, selectionMode = false, selectedIds, onSelectionChange }: {
+  words: WordWithTracking[];
+  prefs?: WordListPrefs;
+  onToggle: (wordId: string) => void;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
+}) {
   const [sorting, setSorting] = useState<SortingState>(
     prefs.sorting ?? [{ id: "frequency", desc: false }],
   );
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(prefs.columnVisibility ?? { hasIndex: false, hskLevel: false, frequency: false });
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(prefs.columnVisibility ?? { hskLevel: false, frequency: false });
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(prefs.columnFilters ?? []);
   const [globalFilter, setGlobalFilter] = useState("");
   const [searchField, setSearchField] = useState<SearchField>(prefs.searchField ?? "all");
@@ -219,7 +226,30 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
 
   const { rows } = table.getRowModel();
 
-  const gridTemplateColumns = table
+  const selectableRows = selectionMode ? rows.filter((r) => !r.original.hasIndex) : [];
+
+  const allVisibleSelected = selectionMode && selectableRows.length > 0 && selectedIds
+    ? selectableRows.every((r) => selectedIds.has(r.original.id))
+    : false;
+
+  const toggleSelectAll = () => {
+    if (!onSelectionChange || !selectedIds) return;
+    if (allVisibleSelected) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(selectableRows.map((r) => r.original.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    if (!onSelectionChange || !selectedIds) return;
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onSelectionChange(next);
+  };
+
+  const gridTemplateColumns = (selectionMode ? "40px " : "") + table
     .getVisibleFlatColumns()
     .map((col) => (col.columnDef.meta as { gridWidth?: string } | undefined)?.gridWidth ?? "1fr")
     .join(" ");
@@ -396,6 +426,16 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
         <div className="word-table-header" role="rowgroup">
           {table.getHeaderGroups().map((headerGroup) => (
             <div className="word-table-row" role="row" key={headerGroup.id} style={{ gridTemplateColumns }}>
+              {selectionMode && (
+                <div role="columnheader" className="word-table-th col-select">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAll}
+                    aria-label="Select all visible"
+                  />
+                </div>
+              )}
               {headerGroup.headers.map((header) => {
                 const meta = header.column.columnDef.meta as
                   | { className?: string }
@@ -462,6 +502,17 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
+                {selectionMode && (
+                  <div role="cell" className="word-table-td col-select">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds?.has(word.id) ?? false}
+                      onChange={() => toggleSelect(word.id)}
+                      disabled={word.hasIndex}
+                      aria-label={`Select ${word.character}`}
+                    />
+                  </div>
+                )}
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta as
                     | { className?: string }

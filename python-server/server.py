@@ -1,11 +1,21 @@
 import os
+import sys
+import json
 import sqlite3
 import tempfile
 import hashlib
+import time
 import glob
 import genanki
-from flask import Flask, jsonify, send_file, request, after_this_request
+import anthropic
+import httpx
+from dotenv import load_dotenv
+from flask import Flask, jsonify, send_file, request, after_this_request, Response, stream_with_context
 from flask_cors import CORS
+from google.cloud import texttospeech
+from pypinyin import lazy_pinyin, Style
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -264,10 +274,18 @@ def get_db():
     return conn
 
 
+CLAUDE_MODEL = "claude-sonnet-4-20250514"
+BATCH_SIZE = 20
+TTS_VOICE = "cmn-CN-Wavenet-C"
+TTS_SPEAKING_RATE_WORD = 0.85
+TTS_SPEAKING_RATE_SENTENCE = 0.80
+SD_ENGINE = "sd3.5-medium"
+
+
 def load_words():
     conn = get_db()
     rows = conn.execute(
-        "SELECT simplified, pinyin, meaning, hsk_level_v3 AS hsk_level FROM words WHERE hsk_level_v3 IS NOT NULL"
+        "SELECT simplified, pinyin, meaning, hsk_level_v3 AS hsk_level FROM words WHERE hsk_level_v3 IS NOT NULL OR source = 'custom'"
     ).fetchall()
     conn.close()
 
@@ -392,6 +410,226 @@ def export_anki():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+def get_sandhi_pinyin(text):
+    syllables = lazy_pinyin(text, style=Style.TONE, tone_sandhi=True)
+    return " ".join(syllables)
+
+
+def get_dictionary_pinyin(text):
+    syllables = lazy_pinyin(text, style=Style.TONE)
+    return " ".join(syllables)
+
+
+def media_filename(word, suffix, ext):
+    h = hashlib.sha256(f"{word}:{suffix}".encode()).hexdigest()[:12]
+    return f"gen_{h}.{ext}"
+
+
+def generate_sentences_batch(client, words):
+    word_list = "\n".join(
+        f"- {w['simplified']} ({w['pinyin']}): {w['meaning']}"
+        for w in words
+    )
+    response = client.messages.create(
+        model=CLAUDE_MODEL,
+        max_tokens=4096,
+        messages=[{
+            "role": "user",
+            "content": f"""Generate one natural example sentence for each Chinese word below.
+Each sentence should be simple, practical, and appropriate for the word's HSK level.
+Use the word naturally in context. Aim for 6-15 characters per sentence.
+
+For each word, provide:
+1. sentence: The example sentence in simplified Chinese
+2. sentenceMeaning: English translation of the sentence
+3. imagePrompt: A short visual description for illustration (10-20 words, no text/words in image). Focus on the WORD's core meaning rather than the sentence — e.g. for "tree" just show a tree, for "Arabic" show Arabic calligraphy or symbols, for "happy" show a smiling face. Keep it iconic and simple.
+
+Return ONLY a JSON array with objects having keys: simplified, sentence, sentenceMeaning, imagePrompt
+
+Words:
+{word_list}"""
+        }],
+    )
+    text = response.content[0].text
+    if "```json" in text:
+        text = text.split("```json")[1].split("```")[0]
+    elif "```" in text:
+        text = text.split("```")[1].split("```")[0]
+    return json.loads(text.strip())
+
+
+def generate_audio(tts_client, text, speaking_rate):
+    synthesis_input = texttospeech.SynthesisInput(text=text)
+    voice = texttospeech.VoiceSelectionParams(
+        language_code="cmn-CN",
+        name=TTS_VOICE,
+    )
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.MP3,
+        speaking_rate=speaking_rate,
+    )
+    response = tts_client.synthesize_speech(
+        input=synthesis_input, voice=voice, audio_config=audio_config
+    )
+    return response.audio_content
+
+
+def generate_image(api_key, prompt):
+    url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
+    with httpx.Client(timeout=60.0) as client:
+        response = client.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Accept": "image/*",
+            },
+            files={"none": ""},
+            data={
+                "prompt": f"Simple flat illustration, clean modern style, no text or words: {prompt}",
+                "model": SD_ENGINE,
+                "output_format": "jpeg",
+                "aspect_ratio": "5:4",
+            },
+        )
+        if response.status_code == 200:
+            return response.content
+        else:
+            print(f"  Image generation failed ({response.status_code}): {response.text}", file=sys.stderr)
+            return None
+
+
+def upsert_word_card(conn, entry):
+    conn.execute(
+        """INSERT INTO word_cards (simplified, pinyin, meaning, part_of_speech, audio, sentence, sentence_pinyin, sentence_meaning, sentence_audio, sentence_image, card_source)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(simplified) DO UPDATE SET
+             pinyin=excluded.pinyin, meaning=excluded.meaning, part_of_speech=excluded.part_of_speech,
+             audio=excluded.audio, sentence=excluded.sentence, sentence_pinyin=excluded.sentence_pinyin,
+             sentence_meaning=excluded.sentence_meaning, sentence_audio=excluded.sentence_audio,
+             sentence_image=excluded.sentence_image, card_source=excluded.card_source""",
+        (
+            entry["simplified"], entry["pinyin"], entry["meaning"],
+            entry["partOfSpeech"], entry["audio"], entry["sentence"],
+            entry["sentencePinyin"], entry["sentenceMeaning"],
+            entry["sentenceAudio"], entry["sentenceImage"], entry["source"],
+        ),
+    )
+    conn.commit()
+
+
+@app.route("/generate-cards", methods=["POST"])
+def generate_cards():
+    body = request.get_json(silent=True) or {}
+    words = body.get("words", [])
+    if not words:
+        return jsonify({"error": "No words provided"}), 400
+
+    for var in ["ANTHROPIC_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS", "STABILITY_API_KEY"]:
+        if not os.environ.get(var):
+            return jsonify({"error": f"Server missing env var: {var}"}), 500
+
+    def event_stream():
+        total = len(words)
+        done = 0
+        claude_client = anthropic.Anthropic()
+        tts_client = texttospeech.TextToSpeechClient()
+        stability_key = os.environ["STABILITY_API_KEY"]
+        conn = get_db()
+
+        try:
+            for batch_start in range(0, total, BATCH_SIZE):
+                batch = words[batch_start:batch_start + BATCH_SIZE]
+
+                try:
+                    sentences = generate_sentences_batch(claude_client, batch)
+                except Exception as e:
+                    yield f"data: {json.dumps({'error': f'Claude API error: {str(e)}'})}\n\n"
+                    return
+                sentence_map = {s["simplified"]: s for s in sentences}
+
+                for word in batch:
+                    char = word["simplified"]
+                    sent_data = sentence_map.get(char)
+                    if not sent_data:
+                        done += 1
+                        yield f"data: {json.dumps({'done': done, 'total': total, 'current': char, 'skipped': True})}\n\n"
+                        continue
+
+                    sentence = sent_data["sentence"]
+                    sentence_meaning = sent_data["sentenceMeaning"]
+                    image_prompt = sent_data["imagePrompt"]
+
+                    sentence_pinyin_dict = get_dictionary_pinyin(sentence)
+                    sentence_pinyin_sandhi = get_sandhi_pinyin(sentence)
+                    if sentence_pinyin_dict:
+                        sentence_pinyin_dict = sentence_pinyin_dict[0].upper() + sentence_pinyin_dict[1:]
+                    if sentence_pinyin_sandhi:
+                        sentence_pinyin_sandhi = sentence_pinyin_sandhi[0].upper() + sentence_pinyin_sandhi[1:]
+
+                    if sentence_pinyin_dict != sentence_pinyin_sandhi:
+                        sentence_pinyin = f"{sentence_pinyin_dict} Sandhi: {sentence_pinyin_sandhi}"
+                    else:
+                        sentence_pinyin = sentence_pinyin_dict
+
+                    try:
+                        word_audio_bytes = generate_audio(tts_client, char, TTS_SPEAKING_RATE_WORD)
+                        sentence_audio_bytes = generate_audio(tts_client, sentence, TTS_SPEAKING_RATE_SENTENCE)
+                    except Exception as e:
+                        done += 1
+                        yield f"data: {json.dumps({'done': done, 'total': total, 'current': char, 'error': f'TTS error: {str(e)}'})}\n\n"
+                        continue
+
+                    word_audio_file = media_filename(char, "word", "mp3")
+                    sentence_audio_file = media_filename(char, "sentence", "mp3")
+                    os.makedirs(MEDIA_DIR, exist_ok=True)
+                    with open(os.path.join(MEDIA_DIR, word_audio_file), "wb") as f:
+                        f.write(word_audio_bytes)
+                    with open(os.path.join(MEDIA_DIR, sentence_audio_file), "wb") as f:
+                        f.write(sentence_audio_bytes)
+
+                    image_file = ""
+                    try:
+                        image_bytes = generate_image(stability_key, image_prompt)
+                        if image_bytes:
+                            image_file = media_filename(char, "image", "jpg")
+                            with open(os.path.join(MEDIA_DIR, image_file), "wb") as f:
+                                f.write(image_bytes)
+                    except Exception:
+                        pass
+
+                    entry = {
+                        "simplified": char,
+                        "pinyin": word.get("pinyin", ""),
+                        "meaning": word.get("meaning", ""),
+                        "partOfSpeech": word.get("partOfSpeech", ""),
+                        "audio": word_audio_file,
+                        "sentence": sentence,
+                        "sentencePinyin": sentence_pinyin,
+                        "sentenceMeaning": sentence_meaning,
+                        "sentenceAudio": sentence_audio_file,
+                        "sentenceImage": image_file,
+                        "source": "generated",
+                    }
+                    upsert_word_card(conn, entry)
+
+                    done += 1
+                    yield f"data: {json.dumps({'done': done, 'total': total, 'current': char})}\n\n"
+                    time.sleep(0.3)
+        finally:
+            conn.close()
+
+        yield f"data: {json.dumps({'complete': True, 'generated': done})}\n\n"
+
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.route("/health", methods=["GET"])

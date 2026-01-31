@@ -3,6 +3,7 @@ import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/export";
 import { getWords, getWordIndex, type HskVersion } from "~/lib/words.server";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
+import { useGenerateCards } from "~/hooks/use-generate-cards";
 import { Toast, type ToastData } from "~/components/toast";
 import { Checkbox } from "@base-ui/react/checkbox";
 import type { WordWithTracking, WordIndexEntry, HskWordWithDeck } from "~/lib/types";
@@ -306,6 +307,7 @@ export function HydrateFallback() {
 export default function ExportRoute() {
   const { allWords, wordIndex } = useLoaderData<typeof clientLoader>();
   const { trackedWords } = useTrackedWords();
+  const { generate, progress: genProgress, isGenerating, error: genError } = useGenerateCards();
 
   const trackedWordsList: WordWithTracking[] = useMemo(
     () => allWords
@@ -334,6 +336,21 @@ export default function ExportRoute() {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   });
+
+  const missingCards = useMemo(
+    () => trackedWordsList.filter((w) => !wordIndex[w.character]),
+    [trackedWordsList, wordIndex],
+  );
+
+  const handleGenerateCurrent = useCallback(async () => {
+    if (!currentWord) return;
+    await generate([{ simplified: currentWord.character, pinyin: currentWord.pinyin, meaning: currentWord.meaning }]);
+  }, [currentWord, generate]);
+
+  const handleGenerateAllMissing = useCallback(async () => {
+    if (missingCards.length === 0) return;
+    await generate(missingCards.map((w) => ({ simplified: w.character, pinyin: w.pinyin, meaning: w.meaning })));
+  }, [missingCards, generate]);
 
   const [toast, setToast] = useState<ToastData | null>(null);
   const [enabledTemplates, setEnabledTemplates] = useState<
@@ -427,7 +444,22 @@ export default function ExportRoute() {
               <strong>{trackedWordsList.length}</strong> words &middot;{" "}
               {selectedCount} card {selectedCount === 1 ? "type" : "types"}{" "}
               &middot; <strong>{totalCards}</strong> total cards
+              {missingCards.length > 0 && (
+                <> &middot; <strong>{missingCards.length}</strong> missing cards</>
+              )}
             </p>
+            {missingCards.length > 0 && (
+              <button
+                type="button"
+                className="generate-missing-btn"
+                onClick={handleGenerateAllMissing}
+                disabled={isGenerating}
+              >
+                {isGenerating && genProgress
+                  ? `Generating ${genProgress.done}/${genProgress.total}...`
+                  : `Generate ${missingCards.length} Missing Cards`}
+              </button>
+            )}
           </div>
 
           <div className="card-nav">
@@ -436,6 +468,16 @@ export default function ExportRoute() {
               {currentWord?.character} &mdash; {clampedIndex + 1} / {trackedWordsList.length}
             </span>
             <button type="button" className="card-nav-btn" onClick={goNext} disabled={clampedIndex >= trackedWordsList.length - 1}>&rarr;</button>
+            {currentWord && !currentWordIndex && (
+              <button
+                type="button"
+                className="generate-single-btn"
+                onClick={handleGenerateCurrent}
+                disabled={isGenerating}
+              >
+                {isGenerating ? "Generating..." : "Generate Card"}
+              </button>
+            )}
           </div>
 
           <div className="card-templates">
@@ -483,6 +525,20 @@ export default function ExportRoute() {
       )}
 
       {toast && <Toast {...toast} onDismiss={() => setToast(null)} />}
+      {isGenerating && genProgress && (
+        <Toast
+          type="pending"
+          message={`Generating ${genProgress.done}/${genProgress.total}${genProgress.current ? ` — ${genProgress.current}` : ""}...`}
+          onDismiss={() => {}}
+        />
+      )}
+      {!isGenerating && genError && (
+        <Toast
+          type="error"
+          message={genError}
+          onDismiss={() => {}}
+        />
+      )}
     </div>
   );
 }
