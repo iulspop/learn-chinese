@@ -1054,3 +1054,198 @@ body {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  /* Page containers */
+  .words-page,
+  .export-page {
+    padding: 0.5rem;
+  }
+
+  /* Header: stack vertically */
+  .words-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .words-header h1 {
+    font-size: 1rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .header-info {
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tracked-badge {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .export-btn {
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+
+  /* Level tabs: horizontal scroll */
+  .level-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .level-tab {
+    flex-shrink: 0;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  /* Level actions: stack vertically */
+  .level-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+  }
+
+  .bulk-btn {
+    font-size: 0.75rem;
+  }
+
+  /* Table toolbar: horizontal scroll */
+  .table-toolbar {
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-toolbar > * {
+    flex-shrink: 0;
+  }
+
+  .search-input {
+    width: 80px;
+  }
+
+  .filter-pill,
+  .columns-pill {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  /* Word table: horizontal scroll */
+  .word-list-container {
+    overflow-x: auto;
+  }
+
+  .word-table th {
+    padding: 0.5rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .word-table td {
+    padding: 0.35rem 0.4rem;
+  }
+
+  /* Frequency coverage */
+  .freq-coverage {
+    padding: 0.5rem;
+  }
+
+  .freq-header h2 {
+    font-size: 0.85rem;
+  }
+
+  .freq-header-right {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .freq-view-btn {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.45rem;
+    white-space: nowrap;
+  }
+
+  .freq-summary {
+    font-size: 0.7rem;
+  }
+
+  .freq-legend {
+    flex-wrap: wrap;
+    font-size: 0.7rem;
+    gap: 0.5rem;
+  }
+
+  /* Export page */
+  .export-header h1 {
+    font-size: 1.2rem;
+  }
+
+  .export-summary {
+    font-size: 0.8rem;
+  }
+
+  .card-preview-row {
+    flex-direction: column;
+  }
+
+  .template-toggles {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .template-toggle {
+    font-size: 0.8rem;
+  }
+
+  .card-template-section {
+    padding: 0.75rem;
+  }
+
+  .anki-card {
+    padding: 10px;
+  }
+
+  .rc-hanzi {
+    font-size: 42px;
+  }
+
+  .rc-sentence {
+    font-size: 22px;
+  }
+
+  .rc-english,
+  .rc-description,
+  .rc-meaning-sen {
+    font-size: 13px;
+  }
+
+  .rc-pinyin {
+    font-size: 18px;
+  }
+
+  .rc-pinyin-sen {
+    font-size: 16px;
+  }
+
+  .export-confirm-btn {
+    font-size: 0.875rem;
+    padding: 0.6rem 1.5rem;
+  }
+
+  /* Toast: full-width on mobile */
+  .toast {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.75rem;
+    font-size: 0.8rem;
+  }
+}
