@@ -364,6 +364,7 @@ body {
 
 .word-table-row {
   display: grid;
+  align-items: center;
 }
 
 .word-table-header {
