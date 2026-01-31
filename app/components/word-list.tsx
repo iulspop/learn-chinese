@@ -76,6 +76,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
   ]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [searchField, setSearchField] = useState<"all" | "character" | "pinyin" | "meaning">("all");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleColumnVisibilityChange = (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
@@ -89,18 +90,31 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
   const table = useReactTable({
     data: words,
     columns,
-    state: { sorting, columnVisibility, globalFilter },
+    state: { sorting, columnVisibility, globalFilter: `${searchField}:${globalFilter}` },
     onSortingChange: setSorting,
     onColumnVisibilityChange: handleColumnVisibilityChange,
-    onGlobalFilterChange: setGlobalFilter,
+    onGlobalFilterChange: (value: string) => {
+      const colonIdx = value.indexOf(":");
+      if (colonIdx !== -1) {
+        setGlobalFilter(value.slice(colonIdx + 1));
+      }
+    },
     globalFilterFn: (row, _columnId, filterValue: string) => {
-      const q = filterValue.toLowerCase();
+      const colonIdx = filterValue.indexOf(":");
+      const field = colonIdx !== -1 ? filterValue.slice(0, colonIdx) : "all";
+      const q = (colonIdx !== -1 ? filterValue.slice(colonIdx + 1) : filterValue).toLowerCase();
+      if (!q) return true;
       const w = row.original;
-      return (
-        w.character.includes(q) ||
-        w.pinyin.toLowerCase().includes(q) ||
-        w.meaning.toLowerCase().includes(q)
-      );
+      switch (field) {
+        case "character": return w.character.includes(q);
+        case "pinyin": return w.pinyin.toLowerCase().includes(q);
+        case "meaning": return w.meaning.toLowerCase().includes(q);
+        default: return (
+          w.character.includes(q) ||
+          w.pinyin.toLowerCase().includes(q) ||
+          w.meaning.toLowerCase().includes(q)
+        );
+      }
     },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -123,10 +137,20 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
     <div className="table-toolbar">
       <div className="search-box">
         <Search size={14} className="search-icon" />
+        <select
+          className="search-field-select"
+          value={searchField}
+          onChange={(e) => setSearchField(e.target.value as typeof searchField)}
+        >
+          <option value="all">All</option>
+          <option value="character">Character</option>
+          <option value="pinyin">Pinyin</option>
+          <option value="meaning">Meaning</option>
+        </select>
         <input
           type="text"
           className="search-input"
-          placeholder="Search words..."
+          placeholder={searchField === "all" ? "Search words..." : `Search ${searchField}...`}
           value={globalFilter}
           onChange={(e) => setGlobalFilter(e.target.value)}
         />

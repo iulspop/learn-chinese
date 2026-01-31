@@ -137,6 +137,18 @@ body {
   flex-shrink: 0;
 }
 
+.search-field-select {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.8rem;
+  color: #374151;
+  cursor: pointer;
+  padding-right: 0.25rem;
+  border-right: 1px solid #d1d5db;
+  margin-right: 0.35rem;
+}
+
 .search-input {
   border: none;
   background: transparent;
