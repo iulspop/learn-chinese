@@ -185,6 +185,30 @@ const TEMPLATES: CardTemplate[] = [
       </>
     ),
   },
+  {
+    id: "meaning-character",
+    name: "Meaning → Character",
+    front: (w, idx) => (
+      <>
+        <div className="rc-english">{idx?.meaning || w.meaning}</div>
+        {idx?.partOfSpeech && (
+          <div className="rc-description">{idx.partOfSpeech}</div>
+        )}
+      </>
+    ),
+    back: (w, idx) => (
+      <>
+        <div className="rc-hanzi">{w.character}</div>
+        <div className="rc-pinyin">{idx?.pinyin || w.pinyin}</div>
+        <div className="rc-english">{idx?.meaning || w.meaning}</div>
+        {idx?.partOfSpeech && (
+          <div className="rc-description">{idx.partOfSpeech}</div>
+        )}
+        <hr />
+        <SentenceBlockBack idx={idx} />
+      </>
+    ),
+  },
 ];
 
 function parseCookieRaw(cookieHeader: string | null, key: string, fallback: string): string {

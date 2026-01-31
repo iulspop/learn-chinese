@@ -215,6 +215,25 @@ ALL_TEMPLATES = {
             + SENTENCE_BLOCK_BACK
         ),
     },
+    "meaning-character": {
+        "name": "Meaning \u2192 Character",
+        "qfmt": (
+            '<div class="english">{{Meaning}}</div>'
+            "{{#PartOfSpeech}}"
+            '<div class="description">{{PartOfSpeech}}</div>'
+            "{{/PartOfSpeech}}"
+        ),
+        "afmt": (
+            '<div lang="zh-Hans" class="hanzi">{{Character}}</div>'
+            '<div class="pinyin">{{Pinyin}}</div>'
+            '<div class="english">{{Meaning}}</div>'
+            "{{#PartOfSpeech}}"
+            '<div class="description">{{PartOfSpeech}}</div>'
+            "{{/PartOfSpeech}}"
+            "<hr>"
+            + SENTENCE_BLOCK_BACK
+        ),
+    },
 }
 
 
