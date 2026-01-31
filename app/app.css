@@ -21,10 +21,13 @@ body {
   padding: 1rem;
 }
 
+@media (max-width: 768px) {
+  .words-page {
+    padding-bottom: 4rem;
+  }
+}
+
 .words-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 1rem;
 }
 
@@ -32,6 +35,45 @@ body {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0;
+}
+
+.floating-actions {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+@media (max-width: 768px) {
+  .floating-actions {
+    top: auto;
+    bottom: 1rem;
+    right: 1rem;
+  }
+}
+
+@media (max-width: 425px) {
+  .floating-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+  }
+
+  .floating-actions .tracked-badge,
+  .floating-actions .add-word-btn,
+  .floating-actions .export-btn {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem;
+  }
 }
 
 .header-title-row {
@@ -57,31 +99,28 @@ body {
   border-color: #9ca3af;
 }
 
-.header-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
 
 .tracked-badge {
   background: #e0f2fe;
   color: #0369a1;
-  padding: 0.25rem 0.75rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .add-word-btn {
   background: none;
   border: 1px solid #d1d5db;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
   cursor: pointer;
   font-weight: 500;
   color: #374151;
   font-family: inherit;
+  white-space: nowrap;
 }
 
 .add-word-btn:hover {
@@ -92,11 +131,13 @@ body {
   background: #0369a1;
   color: #fff;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
   cursor: pointer;
   font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .export-btn:hover {

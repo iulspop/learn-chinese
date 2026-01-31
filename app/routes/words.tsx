@@ -284,14 +284,15 @@ export default function WordsRoute() {
             HSK {version}
           </button>
         </div>
-        <div className="header-info">
-          <span className="tracked-badge">{trackedCount} words tracked</span>
-          <AddWordDialog existingWords={allWords} />
-          <Link to="/export" className="export-btn">
-            Export to Anki
-          </Link>
-        </div>
       </header>
+
+      <div className="floating-actions">
+        <span className="tracked-badge">{trackedCount} words tracked</span>
+        <AddWordDialog existingWords={allWords} />
+        <Link to="/export" className="export-btn">
+          Export to Anki
+        </Link>
+      </div>
 
       <nav className="level-tabs">
         <Link
