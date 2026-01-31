@@ -46,7 +46,7 @@ export function loader({ request }: Route.LoaderArgs) {
 
   const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
   const wordListPrefs: WordListPrefs = {
-    columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", {}),
+    columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", { hasIndex: false, hskLevel: false, frequency: false }),
     sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
     columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
     searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
@@ -122,7 +122,7 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
 
       const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
       const wordListPrefs: WordListPrefs = {
-        columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", {}),
+        columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", { hasIndex: false, hskLevel: false, frequency: false }),
         sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
         columnFilters: parseCookie(cookieHeader, "wl-col-filters", []),
         searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
