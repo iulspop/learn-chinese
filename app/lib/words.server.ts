@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { HskWord, TrackedWords, WordWithTracking, FrequencyStats, WordIndexEntry } from "./types";
+import type { HskWord, TrackedWords, WordWithTracking, FrequencyStats, WordIndexEntry, CoverageCurveData } from "./types";
 
 const DATA_DIR = path.join(process.cwd(), "app", "data");
 const COMPLETE_PATH = path.join(DATA_DIR, "complete.json");
@@ -180,5 +180,103 @@ export function getFrequencyStats(level?: number): FrequencyStats {
   return {
     buckets, totalWords: filtered.length, totalTracked, topNTotal, topNTracked, coveragePercent,
     ...(level === 7 ? { levelWords, levelTracked } : {}),
+  };
+}
+
+const R = 10000;
+
+function harmonicNumber(n: number): number {
+  let sum = 0;
+  for (let k = 1; k <= n; k++) {
+    sum += 1 / k;
+  }
+  return sum;
+}
+
+const H_R = harmonicNumber(R);
+
+// Build sorted array of 1/rank values and a prefix-sum array.
+// cumulativeAt(prefixSums, sortedRanks, n) returns the harmonic sum for all entries with rank <= n.
+function buildPrefixSums(ranks: number[]): { sorted: number[]; prefix: number[] } {
+  const sorted = ranks.slice().sort((a, b) => a - b);
+  const prefix: number[] = new Array(sorted.length);
+  let sum = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    sum += 1 / sorted[i];
+    prefix[i] = sum;
+  }
+  return { sorted, prefix };
+}
+
+function cumulativeAt(sorted: number[], prefix: number[], n: number): number {
+  if (n <= 0 || sorted.length === 0) return 0;
+  // Binary search for last index where sorted[i] <= n
+  let lo = 0, hi = sorted.length - 1, result = -1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid] <= n) { result = mid; lo = mid + 1; }
+    else { hi = mid - 1; }
+  }
+  return result >= 0 ? prefix[result] : 0;
+}
+
+export function getCoverageCurve(level?: number): CoverageCurveData {
+  const allWords = getAllWords();
+  const trackedSet = new Set(getTrackedWords().tracked);
+
+  // Collect all frequency ranks (with duplicates) per group
+  const hsk16Ranks: number[] = [];
+  const hsk79Ranks: number[] = [];
+  const trackedRanks: number[] = [];
+
+  for (const word of allWords) {
+    if (word.frequency >= 1 && word.frequency <= R) {
+      if (word.hskLevel <= 6) {
+        hsk16Ranks.push(word.frequency);
+      } else {
+        hsk79Ranks.push(word.frequency);
+      }
+      if (trackedSet.has(word.id)) {
+        trackedRanks.push(word.frequency);
+      }
+    }
+  }
+
+  const hsk16 = buildPrefixSums(hsk16Ranks);
+  const hsk79 = buildPrefixSums(hsk79Ranks);
+  const tracked = buildPrefixSums(trackedRanks);
+
+  // Sample points at varying density
+  const sampleRanks: number[] = [];
+  for (let r = 0; r <= 1000; r += 50) sampleRanks.push(r);
+  for (let r = 1100; r <= 3000; r += 100) sampleRanks.push(r);
+  for (let r = 3250; r <= 5000; r += 250) sampleRanks.push(r);
+  for (let r = 5500; r <= R; r += 500) sampleRanks.push(r);
+
+  const points = sampleRanks.map((n) => {
+    const zipfPercent = n === 0 ? 0 : (harmonicNumber(n) / H_R) * 100;
+    const h16 = cumulativeAt(hsk16.sorted, hsk16.prefix, n);
+    const h79 = cumulativeAt(hsk79.sorted, hsk79.prefix, n);
+    const ht = cumulativeAt(tracked.sorted, tracked.prefix, n);
+
+    return {
+      rank: n,
+      zipfPercent,
+      hsk16Percent: (h16 / H_R) * 100,
+      hskAllPercent: ((h16 + h79) / H_R) * 100,
+      trackedPercent: (ht / H_R) * 100,
+    };
+  });
+
+  // Total coverage (last entry in prefix sums)
+  const totalHsk16 = hsk16.prefix.length > 0 ? hsk16.prefix[hsk16.prefix.length - 1] : 0;
+  const totalHsk79 = hsk79.prefix.length > 0 ? hsk79.prefix[hsk79.prefix.length - 1] : 0;
+  const totalTracked = tracked.prefix.length > 0 ? tracked.prefix[tracked.prefix.length - 1] : 0;
+
+  return {
+    points,
+    totalHsk16Percent: Math.round((totalHsk16 / H_R) * 1000) / 10,
+    totalHskAllPercent: Math.round(((totalHsk16 + totalHsk79) / H_R) * 1000) / 10,
+    totalTrackedPercent: Math.round((totalTracked / H_R) * 1000) / 10,
   };
 }

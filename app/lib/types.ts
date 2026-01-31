@@ -48,3 +48,18 @@ export interface WordWithTracking extends HskWord {
   isTracked: boolean;
   hasIndex: boolean;
 }
+
+export interface CoveragePoint {
+  rank: number;
+  zipfPercent: number;
+  hsk16Percent: number;
+  hskAllPercent: number;
+  trackedPercent: number;
+}
+
+export interface CoverageCurveData {
+  points: CoveragePoint[];
+  totalTrackedPercent: number;
+  totalHsk16Percent: number;
+  totalHskAllPercent: number;
+}

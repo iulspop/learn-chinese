@@ -427,6 +427,45 @@ body {
   justify-content: space-between;
   align-items: baseline;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.freq-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.freq-view-toggle {
+  display: inline-flex;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.freq-view-btn {
+  background: #fff;
+  border: none;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.freq-view-btn:first-child {
+  border-right: 1px solid #d1d5db;
+}
+
+.freq-view-btn:hover {
+  background: #f3f4f6;
+}
+
+.freq-view-btn.active {
+  background: #0369a1;
+  color: #fff;
 }
 
 .freq-header h2 {
@@ -501,6 +540,59 @@ body {
 
 .legend-tracked {
   background: #0369a1;
+}
+
+.legend-zipf {
+  background: #9ca3af;
+}
+
+/* Coverage curve styles */
+.curve-zipf-line {
+  fill: none;
+  stroke: #9ca3af;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.curve-hsk16-area {
+  fill: #bfdbfe;
+  opacity: 0.5;
+}
+
+.curve-hsk16-line {
+  fill: none;
+  stroke: #60a5fa;
+  stroke-width: 1.5;
+}
+
+.curve-hsk79-area {
+  fill: #e9d5ff;
+  opacity: 0.4;
+}
+
+.curve-hsk79-line {
+  fill: none;
+  stroke: #a78bfa;
+  stroke-width: 1.5;
+}
+
+.legend-hsk16 {
+  background: #bfdbfe;
+}
+
+.legend-hsk79 {
+  background: #e9d5ff;
+}
+
+.curve-tracked-area {
+  fill: #0369a1;
+  opacity: 0.3;
+}
+
+.curve-tracked-line {
+  fill: none;
+  stroke: #0369a1;
+  stroke-width: 2;
 }
 
 /* Toast */

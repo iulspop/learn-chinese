@@ -7,6 +7,7 @@ import {
   untrackAllInLevel,
   getTrackedWords,
   getFrequencyStats,
+  getCoverageCurve,
 } from "~/lib/words.server";
 import { WordList } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
@@ -25,6 +26,13 @@ function parseColumnVisibility(cookieHeader: string | null): Record<string, bool
   }
 }
 
+function parseFreqView(cookieHeader: string | null): "bars" | "coverage" {
+  if (!cookieHeader) return "bars";
+  const match = cookieHeader.match(/(?:^|;\s*)freq-view=([^;]*)/);
+  if (!match) return "bars";
+  return match[1] === "coverage" ? "coverage" : "bars";
+}
+
 export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const levelParam = url.searchParams.get("level");
@@ -33,9 +41,12 @@ export function loader({ request }: Route.LoaderArgs) {
   const words = getWordsWithTracking(level);
   const trackedCount = getTrackedWords().tracked.length;
   const frequencyStats = getFrequencyStats(level);
-  const columnVisibility = parseColumnVisibility(request.headers.get("cookie"));
+  const coverageCurve = getCoverageCurve(level);
+  const cookieHeader = request.headers.get("cookie");
+  const columnVisibility = parseColumnVisibility(cookieHeader);
+  const freqView = parseFreqView(cookieHeader);
 
-  return { words, trackedCount, currentLevel: level ?? null, frequencyStats, columnVisibility };
+  return { words, trackedCount, currentLevel: level ?? null, frequencyStats, coverageCurve, freqView, columnVisibility };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -57,7 +68,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function WordsRoute() {
-  const { words, trackedCount, currentLevel, frequencyStats, columnVisibility } = useLoaderData<typeof loader>();
+  const { words, trackedCount, currentLevel, frequencyStats, coverageCurve, freqView, columnVisibility } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
 
   const levelTrackedCount = words.filter((w) => w.isTracked).length;
@@ -112,7 +123,7 @@ export default function WordsRoute() {
         </div>
       )}
 
-      <FrequencyCoverage stats={frequencyStats} isHsk7={currentLevel === 7} />
+      <FrequencyCoverage stats={frequencyStats} coverageCurve={coverageCurve} initialView={freqView} isHsk7={currentLevel === 7} />
 
       <WordList words={words} initialColumnVisibility={columnVisibility} />
     </div>
