@@ -21,7 +21,7 @@ body {
   padding: 1rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .words-page {
     padding-bottom: 4rem;
   }
@@ -52,7 +52,7 @@ body {
   z-index: 50;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .floating-actions {
     top: auto;
     bottom: 1rem;
@@ -179,6 +179,8 @@ body {
   margin-bottom: 0.75rem;
   font-size: 0.875rem;
   color: #6b7280;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
 }
 
 .bulk-btn {
@@ -1230,12 +1232,9 @@ body {
     font-size: 0.8rem;
   }
 
-  /* Level actions: stack vertically */
   .level-actions {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.4rem;
     font-size: 0.8rem;
+    white-space: nowrap;
   }
 
   .bulk-btn {
