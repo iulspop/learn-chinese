@@ -136,7 +136,7 @@ function ShareLinkButton({ onShareList }: { onShareList: () => void }) {
       >
         <Share2 size={14} />
       </button>
-      {copied && <span className="share-copied-tooltip">Copied link to share list!</span>}
+      {copied && <span className="share-copied-tooltip">Share link copied! Send it to share your tracked words with others.</span>}
     </span>
   );
 }
