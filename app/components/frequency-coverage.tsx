@@ -4,7 +4,7 @@ import type { FrequencyStats, CoverageCurveData } from "~/lib/types";
 type FreqView = "bars" | "coverage";
 
 function setViewCookie(view: FreqView) {
-  document.cookie = `freq-view=${view};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
+  document.cookie = `freq-view=${encodeURIComponent(JSON.stringify(view))};path=/;max-age=31536000;SameSite=Lax`;
 }
 
 function CoverageCurveChart({ data }: { data: CoverageCurveData }) {

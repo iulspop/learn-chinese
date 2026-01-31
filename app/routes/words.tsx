@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useLoaderData, useSearchParams } from "react-router";
+import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/words";
 import { getWords, getAllWords } from "~/lib/words.server";
 import { WordList, type WordListPrefs } from "~/components/word-list";
@@ -31,8 +31,7 @@ export function loader({ request }: Route.LoaderArgs) {
   const allWords = getAllWords();
   const cookieHeader = request.headers.get("cookie");
 
-  const freqViewMatch = cookieHeader?.match(/(?:^|;\s*)freq-view=([^;]*)/);
-  const freqView: "bars" | "coverage" = freqViewMatch?.[1] === "coverage" ? "coverage" : "bars";
+  const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
   const wordListPrefs: WordListPrefs = {
     columnVisibility: parseCookie(cookieHeader, "wl-col-visibility", {}),
     sorting: parseCookie(cookieHeader, "wl-sorting", [{ id: "frequency", desc: false }]),
@@ -64,7 +63,6 @@ export function HydrateFallback() {
 
 export default function WordsRoute() {
   const { words, allWords, currentLevel, freqView, wordListPrefs } = useLoaderData<typeof clientLoader>();
-  const [searchParams] = useSearchParams();
   const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
 
   const wordsWithTracking: WordWithTracking[] = useMemo(
@@ -101,27 +99,27 @@ export default function WordsRoute() {
         <h1>HSK Vocabulary</h1>
         <div className="header-info">
           <span className="tracked-badge">{trackedCount} words tracked</span>
-          <a href="/export" className="export-btn">
+          <Link to="/export" className="export-btn">
             Export to Anki
-          </a>
+          </Link>
         </div>
       </header>
 
       <nav className="level-tabs">
-        <a
-          href="/words"
+        <Link
+          to="/words"
           className={`level-tab ${currentLevel === null ? "active" : ""}`}
         >
           All
-        </a>
+        </Link>
         {HSK_LEVELS.map((level) => (
-          <a
+          <Link
             key={level}
-            href={`/words?level=${level}`}
+            to={`/words?level=${level}`}
             className={`level-tab ${currentLevel === level ? "active" : ""}`}
           >
             HSK {HSK_LEVEL_LABELS[level] ?? level}
-          </a>
+          </Link>
         ))}
       </nav>
 

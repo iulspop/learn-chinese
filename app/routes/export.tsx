@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from "react";
-import { useLoaderData } from "react-router";
+import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/export";
 import { getWords, getWordIndex } from "~/lib/words.server";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
@@ -205,7 +205,7 @@ export function HydrateFallback() {
   return (
     <div className="export-page">
       <header className="export-header">
-        <a href="/words" className="back-link">&larr; Back to vocabulary</a>
+        <Link to="/words" className="back-link">&larr; Back to vocabulary</Link>
         <h1>Export to Anki</h1>
       </header>
     </div>
@@ -283,9 +283,9 @@ export default function ExportRoute() {
   return (
     <div className="export-page">
       <header className="export-header">
-        <a href="/words" className="back-link">
+        <Link to="/words" className="back-link">
           &larr; Back to vocabulary
-        </a>
+        </Link>
         <h1>Export to Anki</h1>
       </header>
 
