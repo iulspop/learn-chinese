@@ -105,7 +105,7 @@ export function WordList({ words, prefs = {}, onToggle }: { words: WordWithTrack
   const [sorting, setSorting] = useState<SortingState>(
     prefs.sorting ?? [{ id: "frequency", desc: false }],
   );
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(prefs.columnVisibility ?? {});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(prefs.columnVisibility ?? { hasIndex: false, hskLevel: false, frequency: false });
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(prefs.columnFilters ?? []);
   const [globalFilter, setGlobalFilter] = useState("");
   const [searchField, setSearchField] = useState<SearchField>(prefs.searchField ?? "all");
