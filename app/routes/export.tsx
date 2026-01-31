@@ -192,8 +192,28 @@ export function loader() {
   return { allWords, wordIndex };
 }
 
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  const serverData = await serverLoader();
+  const raw = localStorage.getItem("tracked-words");
+  const trackedIds: string[] = raw ? JSON.parse(raw) : [];
+  return { ...serverData, trackedIds };
+}
+
+clientLoader.hydrate = true as const;
+
+export function HydrateFallback() {
+  return (
+    <div className="export-page">
+      <header className="export-header">
+        <a href="/words" className="back-link">&larr; Back to vocabulary</a>
+        <h1>Export to Anki</h1>
+      </header>
+    </div>
+  );
+}
+
 export default function ExportRoute() {
-  const { allWords, wordIndex } = useLoaderData<typeof loader>();
+  const { allWords, wordIndex } = useLoaderData<typeof clientLoader>();
   const { trackedWords } = useTrackedWords();
 
   const trackedWordsList: WordWithTracking[] = useMemo(

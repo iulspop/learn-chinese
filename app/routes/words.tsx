@@ -43,8 +43,27 @@ export function loader({ request }: Route.LoaderArgs) {
   return { words, allWords, currentLevel: level ?? null, freqView, wordListPrefs };
 }
 
+export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
+  const serverData = await serverLoader();
+  const raw = localStorage.getItem("tracked-words");
+  const trackedIds: string[] = raw ? JSON.parse(raw) : [];
+  return { ...serverData, trackedIds };
+}
+
+clientLoader.hydrate = true as const;
+
+export function HydrateFallback() {
+  return (
+    <div className="words-page">
+      <header className="words-header">
+        <h1>HSK Vocabulary</h1>
+      </header>
+    </div>
+  );
+}
+
 export default function WordsRoute() {
-  const { words, allWords, currentLevel, freqView, wordListPrefs } = useLoaderData<typeof loader>();
+  const { words, allWords, currentLevel, freqView, wordListPrefs } = useLoaderData<typeof clientLoader>();
   const [searchParams] = useSearchParams();
   const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
 
