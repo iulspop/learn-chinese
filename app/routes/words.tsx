@@ -231,12 +231,17 @@ export default function WordsRoute() {
     setSearchParams(searchParams, { replace: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCopyShareLink = useCallback(() => {
+  const handleCopyShareLink = useCallback(async () => {
     const ids = [...trackedWords];
-    if (ids.length === 0) return;
+    if (ids.length === 0) return false;
     const encoded = btoa(encodeURIComponent(ids.join(",")));
     const url = `${window.location.origin}/words?share=${encoded}`;
-    navigator.clipboard.writeText(url);
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;
+    }
   }, [trackedWords]);
 
   const hasCustomWords = useMemo(() => allWords.some((w) => w.hskLevel === null), [allWords]);

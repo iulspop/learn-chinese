@@ -13,6 +13,7 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check, Filter, Pin, Share2 } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
+import { Tooltip } from "@base-ui/react/tooltip";
 import { Checkbox } from "@base-ui/react/checkbox";
 import { Select } from "@base-ui/react/select";
 import { Input } from "@base-ui/react/input";
@@ -119,25 +120,31 @@ export interface WordListPrefs {
   pinTracked?: boolean;
 }
 
-function ShareLinkButton({ onShareList }: { onShareList: () => void }) {
+function ShareLinkButton({ onShareList }: { onShareList: () => Promise<boolean> }) {
   const [copied, setCopied] = useState(false);
-  const handleClick = () => {
-    onShareList();
+  const handleClick = async () => {
+    const success = await onShareList();
+    if (!success) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <span className="share-link-wrapper">
-      <button
-        type="button"
-        className="share-list-btn"
-        onClick={handleClick}
-        title="Copy share link"
-      >
-        <Share2 size={14} />
-      </button>
-      {copied && <span className="share-copied-tooltip">Share link copied!</span>}
-    </span>
+    <Tooltip.Provider>
+      <Tooltip.Root open={copied}>
+        <Tooltip.Trigger
+          render={<button type="button" className="share-list-btn" onClick={handleClick} aria-label="Copy share link" />}
+        >
+          <Share2 size={14} />
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Positioner side="top" sideOffset={8}>
+            <Tooltip.Popup className="share-copied-tooltip">
+              Share link copied!
+            </Tooltip.Popup>
+          </Tooltip.Positioner>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
   );
 }
 
@@ -145,7 +152,7 @@ export function WordList({ words, prefs = {}, onToggle, onShareList }: {
   words: WordWithTracking[];
   prefs?: WordListPrefs;
   onToggle: (wordId: string) => void;
-  onShareList?: () => void;
+  onShareList?: () => Promise<boolean>;
 }) {
   const [sorting, setSorting] = useState<SortingState>(
     prefs.sorting ?? [{ id: "frequency", desc: false }],

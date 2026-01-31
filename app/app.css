@@ -1515,17 +1515,7 @@ body {
   background: #e5e7eb;
 }
 
-.share-link-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
 .share-copied-tooltip {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
   background: #1f2937;
   color: #fff;
   font-size: 0.75rem;
@@ -1533,7 +1523,6 @@ body {
   border-radius: 4px;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 50;
 }
 
 
