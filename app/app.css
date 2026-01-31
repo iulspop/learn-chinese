@@ -1493,9 +1493,41 @@ body {
 }
 
 .col-select input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  background: none;
+}
+
+.col-select input[type="checkbox"]:hover {
+  border-color: #0369a1;
+}
+
+.col-select input[type="checkbox"]:checked {
+  background: #0369a1;
+  border-color: #0369a1;
+}
+
+.col-select input[type="checkbox"]:checked::after {
+  content: "\2713";
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.col-select input[type="checkbox"]:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.col-select input[type="checkbox"]:disabled:hover {
+  border-color: #d1d5db;
 }
 
 /* Floating action bar */
