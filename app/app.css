@@ -1440,6 +1440,28 @@ body {
   cursor: not-allowed;
 }
 
+/* Share List button */
+.share-list-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #374151;
+  font-family: inherit;
+}
+
+.share-list-btn:hover {
+  background: #f3f4f6;
+}
+
+.share-list-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Selection checkbox column */
 .col-select {
   display: flex;

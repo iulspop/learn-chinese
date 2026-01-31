@@ -1,5 +1,5 @@
-import { useMemo, useState, useCallback } from "react";
-import { useLoaderData, Link, useNavigate } from "react-router";
+import { useMemo, useState, useCallback, useEffect } from "react";
+import { useLoaderData, Link, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/words";
 import { getWords, getWordIndex, addCustomWord, type HskVersion } from "~/lib/words.server";
 import { WordList, type WordListPrefs } from "~/components/word-list";
@@ -212,9 +212,41 @@ export default function WordsRoute() {
   const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
   const { generate, progress, isGenerating, error: genError } = useGenerateCards();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const hskLevels = version === "2.0" ? HSK_LEVELS_V2 : HSK_LEVELS_V3;
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [shareToast, setShareToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Import shared words from ?share= param
+  useEffect(() => {
+    const shareParam = searchParams.get("share");
+    if (!shareParam) return;
+    try {
+      const decoded = decodeURIComponent(atob(shareParam));
+      const ids = decoded.split(",").filter(Boolean);
+      if (ids.length > 0) {
+        trackAll(ids);
+        setShareToast({ type: "success", message: `Added ${ids.length} shared words to your list` });
+      }
+    } catch {
+      setShareToast({ type: "error", message: "Invalid share link" });
+    }
+    // Remove share param from URL
+    searchParams.delete("share");
+    setSearchParams(searchParams, { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCopyShareLink = useCallback(() => {
+    const ids = [...trackedWords];
+    if (ids.length === 0) return;
+    const encoded = btoa(encodeURIComponent(ids.join(",")));
+    const url = `${window.location.origin}/words?share=${encoded}`;
+    navigator.clipboard.writeText(url).then(
+      () => setShareToast({ type: "success", message: "Share link copied to clipboard" }),
+      () => setShareToast({ type: "error", message: "Failed to copy link" }),
+    );
+  }, [trackedWords]);
 
   const handleGenerateSelected = useCallback(async () => {
     const selectedWords = words
@@ -273,6 +305,14 @@ export default function WordsRoute() {
         <div className="header-info">
           <span className="tracked-badge">{trackedCount} words tracked</span>
           <AddWordDialog existingWords={allWords} />
+          <button
+            type="button"
+            className="share-list-btn"
+            onClick={handleCopyShareLink}
+            disabled={trackedCount === 0}
+          >
+            Share List
+          </button>
           <Link to="/export" className="export-btn">
             Export to Anki
           </Link>
@@ -365,6 +405,13 @@ export default function WordsRoute() {
           type="error"
           message={genError}
           onDismiss={() => {}}
+        />
+      )}
+
+      {shareToast && (
+        <Toast
+          {...shareToast}
+          onDismiss={() => setShareToast(null)}
         />
       )}
     </div>
