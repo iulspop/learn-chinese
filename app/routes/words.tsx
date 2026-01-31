@@ -112,7 +112,7 @@ export default function WordsRoute() {
         </div>
       )}
 
-      <FrequencyCoverage stats={frequencyStats} isHsk7={currentLevel === 7} />
+      <FrequencyCoverage stats={frequencyStats} />
 
       <WordList words={words} initialColumnVisibility={columnVisibility} />
     </div>

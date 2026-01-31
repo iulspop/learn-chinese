@@ -142,19 +142,11 @@ export function getFrequencyStats(level?: number): FrequencyStats {
   let totalTracked = 0;
   let topNTotal = 0;
   let topNTracked = 0;
-  let levelWords = 0;
-  let levelTracked = 0;
   const TOP_N = 5000;
 
   for (const word of filtered) {
     if (trackedSet.has(word.id)) {
       totalTracked++;
-    }
-    if (level === 7 && word.hskLevel === 7) {
-      levelWords++;
-      if (trackedSet.has(word.id)) {
-        levelTracked++;
-      }
     }
     const freq = word.frequency;
     const bucketIndex = Math.min(Math.floor((freq - 1) / BUCKET_SIZE), NUM_BUCKETS - 1);
@@ -179,6 +171,5 @@ export function getFrequencyStats(level?: number): FrequencyStats {
 
   return {
     buckets, totalWords: filtered.length, totalTracked, topNTotal, topNTracked, coveragePercent,
-    ...(level === 7 ? { levelWords, levelTracked } : {}),
   };
 }

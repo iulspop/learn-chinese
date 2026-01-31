@@ -1,6 +1,6 @@
 import type { FrequencyStats } from "~/lib/types";
 
-export function FrequencyCoverage({ stats, isHsk7 }: { stats: FrequencyStats; isHsk7?: boolean }) {
+export function FrequencyCoverage({ stats }: { stats: FrequencyStats }) {
   const maxCount = Math.max(...stats.buckets.map((b) => b.hskCount), 1);
   const chartHeight = 160;
   const topMargin = 14;
@@ -18,18 +18,8 @@ export function FrequencyCoverage({ stats, isHsk7 }: { stats: FrequencyStats; is
       <div className="freq-header">
         <h2>Frequency Coverage</h2>
         <span className="freq-summary">
-          {isHsk7 ? (
-            <>
-              {stats.levelTracked} / {stats.levelWords} HSK 7-9 words tracked
-              {" "}&middot;{" "}
-              {stats.totalTracked} / {stats.totalWords} total HSK words tracked
-            </>
-          ) : (
-            <>
-              {stats.topNTracked} / {stats.topNTotal} HSK words in top 5000 tracked
-              ({stats.coveragePercent}%)
-            </>
-          )}
+          {stats.topNTracked} / {stats.topNTotal} HSK words in top 5000 tracked
+          ({stats.coveragePercent}%)
         </span>
       </div>
       <div className="freq-chart">
