@@ -72,6 +72,10 @@ const TOGGLEABLE_COLUMNS: { id: string; label: string }[] = [
   { id: "pinyin", label: "Pinyin" },
 ];
 
+function stripDiacritics(s: string): string {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 export function WordList({ words, initialColumnVisibility = {} }: { words: WordWithTracking[]; initialColumnVisibility?: VisibilityState }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "frequency", desc: false },
@@ -107,12 +111,14 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
       const q = (colonIdx !== -1 ? filterValue.slice(colonIdx + 1) : filterValue).toLowerCase();
       if (!q) return true;
       const w = row.original;
+      const pinyin = stripDiacritics(w.pinyin.toLowerCase());
       switch (field) {
         case "character": return w.character.includes(q);
-        case "pinyin": return w.pinyin.toLowerCase().includes(q);
+        case "pinyin": return pinyin.includes(q) || w.pinyin.toLowerCase().includes(q);
         case "meaning": return w.meaning.toLowerCase().includes(q);
         default: return (
           w.character.includes(q) ||
+          pinyin.includes(q) ||
           w.pinyin.toLowerCase().includes(q) ||
           w.meaning.toLowerCase().includes(q)
         );
