@@ -115,6 +115,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
     estimateSize: () => ROW_HEIGHT,
     overscan: 20,
     getItemKey: (index) => rows[index].id,
+    measureElement: (el) => el.getBoundingClientRect().height,
   });
 
   return (
@@ -218,6 +219,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
             return (
               <tr
                 key={row.id}
+                ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
                 className={word.isTracked ? "tracked" : ""}
                 style={{
