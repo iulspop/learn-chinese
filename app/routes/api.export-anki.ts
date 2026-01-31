@@ -1,6 +1,4 @@
-import type { Route } from "./+types/api.export-anki";
-
-export async function action({ request }: Route.ActionArgs) {
+export async function action({ request }: { request: Request }) {
   const pythonUrl = process.env.PYTHON_API_URL || "http://localhost:5001";
   const body = await request.text();
   const res = await fetch(`${pythonUrl}/export-anki`, {
