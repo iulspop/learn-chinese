@@ -76,6 +76,7 @@ const columns = [
 const ROW_HEIGHT = 41;
 
 const TOGGLEABLE_COLUMNS: { id: string; label: string }[] = [
+  { id: "meaning", label: "Meaning" },
   { id: "hasIndex", label: "Deck" },
   { id: "hskLevel", label: "HSK" },
   { id: "frequency", label: "Freq" },
