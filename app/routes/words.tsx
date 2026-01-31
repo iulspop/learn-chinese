@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { useLoaderData, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/words";
-import { getWords, getWordIndex, type HskVersion } from "~/lib/words.server";
+import { getWords, getWordIndex, addCustomWord, type HskVersion } from "~/lib/words.server";
 import { WordList, type WordListPrefs } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
+import { AddWordDialog } from "~/components/add-word-dialog";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { computeFrequencyStats, computeCoverageCurve } from "~/lib/stats";
 import type { WordWithTracking, HskWordWithDeck } from "~/lib/types";
@@ -29,20 +30,43 @@ function parseCookieRaw(cookieHeader: string | null, key: string, fallback: stri
   return match ? decodeURIComponent(match[1]) : fallback;
 }
 
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "add-word") {
+    const simplified = (formData.get("simplified") as string)?.trim();
+    const pinyin = (formData.get("pinyin") as string)?.trim();
+    const meaning = (formData.get("meaning") as string)?.trim();
+
+    if (!simplified || !pinyin || !meaning) {
+      return { ok: false, error: "All fields are required" };
+    }
+
+    return addCustomWord(simplified, pinyin, meaning);
+  }
+
+  return { ok: false, error: "Unknown action" };
+}
+
 export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const levelParam = url.searchParams.get("level");
-  const level = levelParam ? parseInt(levelParam, 10) : undefined;
+  const level = levelParam === "custom" ? "custom" as const : levelParam ? parseInt(levelParam, 10) : undefined;
   const cookieHeader = request.headers.get("cookie");
 
   const version = parseCookieRaw(cookieHeader, "hsk-version", "3.0") as HskVersion;
   const maxLevel = version === "2.0" ? 6 : 7;
 
   // If on a level that doesn't exist in this version, ignore the level filter
-  const effectiveLevel = level && level <= maxLevel ? level : undefined;
+  const effectiveLevel = level === "custom" ? "custom" as const : (typeof level === "number" && level <= maxLevel ? level : undefined);
 
   const allWords = getWords(undefined, version);
-  const words = effectiveLevel ? allWords.filter((w) => w.hskLevel === effectiveLevel) : allWords;
+  const words = effectiveLevel === "custom"
+    ? allWords.filter((w) => w.hskLevel === null)
+    : effectiveLevel
+      ? allWords.filter((w) => w.hskLevel === effectiveLevel)
+      : allWords;
 
   const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
   const wordListPrefs: WordListPrefs = {
@@ -92,10 +116,24 @@ function idbPut(db: IDBDatabase, entries: Record<string, unknown>): Promise<void
   });
 }
 
+async function clearCacheDB(): Promise<void> {
+  try {
+    const db = await openCacheDB();
+    const tx = db.transaction("data", "readwrite");
+    tx.objectStore("data").clear();
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // ignore — cache clear is best-effort
+  }
+}
+
 export async function clientLoader({ serverLoader, request }: Route.ClientLoaderArgs) {
   const url = new URL(request.url);
   const levelParam = url.searchParams.get("level");
-  const level = levelParam ? parseInt(levelParam, 10) : undefined;
+  const level = levelParam === "custom" ? "custom" as const : levelParam ? parseInt(levelParam, 10) : undefined;
 
   const cookieHeader = document.cookie;
   const version = parseCookieRaw(cookieHeader, "hsk-version", "3.0") as HskVersion;
@@ -118,8 +156,12 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
 
     if (cachedVersion === version && cachedAllWords) {
       const maxLevel = version === "2.0" ? 6 : 7;
-      const effectiveLevel = level && level <= maxLevel ? level : undefined;
-      const words = effectiveLevel ? cachedAllWords.filter((w) => w.hskLevel === effectiveLevel) : cachedAllWords;
+      const effectiveLevel = level === "custom" ? "custom" as const : (typeof level === "number" && level <= maxLevel ? level : undefined);
+      const words = effectiveLevel === "custom"
+        ? cachedAllWords.filter((w) => w.hskLevel === null)
+        : effectiveLevel
+          ? cachedAllWords.filter((w) => w.hskLevel === effectiveLevel)
+          : cachedAllWords;
 
       const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
       const wordListPrefs: WordListPrefs = {
@@ -145,6 +187,14 @@ export async function clientLoader({ serverLoader, request }: Route.ClientLoader
 
 clientLoader.hydrate = true as const;
 
+export async function clientAction({ serverAction }: Route.ClientActionArgs) {
+  const result = await serverAction();
+  if (result.ok) {
+    await clearCacheDB();
+  }
+  return result;
+}
+
 export function HydrateFallback() {
   return (
     <div className="words-page">
@@ -159,8 +209,9 @@ export default function WordsRoute() {
   const { words, allWords, currentLevel, freqView, wordListPrefs, version } = useLoaderData<typeof clientLoader>();
   const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
   const navigate = useNavigate();
-
   const hskLevels = version === "2.0" ? HSK_LEVELS_V2 : HSK_LEVELS_V3;
+
+  const hasCustomWords = useMemo(() => allWords.some((w) => w.hskLevel === null), [allWords]);
 
   const wordsWithTracking: WordWithTracking[] = useMemo(
     () => words.map((w) => ({ ...w, isTracked: trackedWords.has(w.id) })),
@@ -168,7 +219,7 @@ export default function WordsRoute() {
   );
 
   const frequencyStats = useMemo(
-    () => computeFrequencyStats(allWords, trackedWords, currentLevel ?? undefined),
+    () => computeFrequencyStats(allWords, trackedWords, typeof currentLevel === "number" ? currentLevel : undefined),
     [allWords, trackedWords, currentLevel],
   );
 
@@ -207,6 +258,7 @@ export default function WordsRoute() {
         </div>
         <div className="header-info">
           <span className="tracked-badge">{trackedCount} words tracked</span>
+          <AddWordDialog existingWords={allWords} />
           <Link to="/export" className="export-btn">
             Export to Anki
           </Link>
@@ -229,9 +281,17 @@ export default function WordsRoute() {
             HSK {HSK_LEVEL_LABELS[level] ?? level}
           </Link>
         ))}
+        {hasCustomWords && (
+          <Link
+            to="/words?level=custom"
+            className={`level-tab ${currentLevel === "custom" ? "active" : ""}`}
+          >
+            Custom
+          </Link>
+        )}
       </nav>
 
-      {currentLevel !== null && (
+      {currentLevel !== null && typeof currentLevel === "number" && (
         <div className="level-actions">
           <span>
             {levelTrackedCount} / {wordsWithTracking.length} tracked in HSK {HSK_LEVEL_LABELS[currentLevel] ?? currentLevel}
@@ -242,7 +302,20 @@ export default function WordsRoute() {
         </div>
       )}
 
-      <FrequencyCoverage stats={frequencyStats} coverageCurve={coverageCurve} initialView={freqView} isHsk7={currentLevel === 7} />
+      {currentLevel === "custom" && (
+        <div className="level-actions">
+          <span>
+            {levelTrackedCount} / {wordsWithTracking.length} custom words tracked
+          </span>
+          <button type="button" className="bulk-btn" onClick={handleBulkToggle}>
+            {allLevelTracked ? "Untrack All" : "Track All"} Custom
+          </button>
+        </div>
+      )}
+
+      {currentLevel !== "custom" && (
+        <FrequencyCoverage stats={frequencyStats} coverageCurve={coverageCurve} initialView={freqView} isHsk7={currentLevel === 7} />
+      )}
 
       <WordList words={wordsWithTracking} prefs={wordListPrefs} onToggle={toggleWord} />
     </div>

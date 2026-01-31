@@ -61,13 +61,31 @@ const columns = [
   }),
   columnHelper.accessor("hskLevel", {
     header: "HSK",
+    cell: ({ getValue }) => getValue() ?? "—",
+    sortingFn: (rowA, rowB) => {
+      const a = rowA.original.hskLevel;
+      const b = rowB.original.hskLevel;
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a - b;
+    },
     meta: { className: "col-level", gridWidth: "minmax(50px, 7%)" },
   }),
   columnHelper.accessor("frequency", {
     header: "Freq",
     cell: ({ getValue }) => {
       const v = getValue();
+      if (v === null) return "—";
       return v > 9999 ? "10k+" : v.toLocaleString();
+    },
+    sortingFn: (rowA, rowB) => {
+      const a = rowA.original.frequency;
+      const b = rowB.original.frequency;
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a - b;
     },
     meta: { className: "col-freq", gridWidth: "minmax(55px, 7%)" },
   }),

@@ -71,6 +71,22 @@ body {
   font-weight: 500;
 }
 
+.add-word-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-weight: 500;
+  color: #374151;
+  font-family: inherit;
+}
+
+.add-word-btn:hover {
+  background: #f3f4f6;
+}
+
 .export-btn {
   background: #0369a1;
   color: #fff;
@@ -1302,4 +1318,124 @@ body {
     bottom: 0.75rem;
     font-size: 0.8rem;
   }
+}
+
+/* Add Word Dialog */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+
+.dialog-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 400px;
+  z-index: 101;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.dialog-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 1rem;
+}
+
+.add-word-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.add-word-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.add-word-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.add-word-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.add-word-input:focus {
+  outline: none;
+  border-color: #0369a1;
+  box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.2);
+}
+
+.add-word-field-error {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.field-invalid .add-word-input {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.add-word-error {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.add-word-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.add-word-cancel {
+  background: none;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-family: inherit;
+  color: #374151;
+}
+
+.add-word-cancel:hover {
+  background: #f3f4f6;
+}
+
+.add-word-submit {
+  background: #0369a1;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.add-word-submit:hover {
+  background: #075985;
+}
+
+.add-word-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

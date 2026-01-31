@@ -20,7 +20,7 @@ export function computeFrequencyStats(
   level?: number,
 ): FrequencyStats {
   const filtered =
-    level === 7 ? words : words.filter((w) => w.hskLevel <= 6);
+    level === 7 ? words.filter((w) => w.frequency !== null) : words.filter((w) => w.hskLevel !== null && w.hskLevel <= 6);
 
   const buckets = Array.from({ length: NUM_BUCKETS }, (_, i) => ({
     rangeLabel: `${i * BUCKET_SIZE + 1}-${(i + 1) * BUCKET_SIZE}`,
@@ -43,7 +43,7 @@ export function computeFrequencyStats(
       levelWords++;
       if (trackedSet.has(word.id)) levelTracked++;
     }
-    const freq = word.frequency;
+    const freq = word.frequency!;
     const bucketIndex = Math.min(
       Math.floor((freq - 1) / BUCKET_SIZE),
       NUM_BUCKETS - 1,
@@ -116,8 +116,8 @@ export function computeCoverageCurve(
   const trackedRanks: number[] = [];
 
   for (const word of words) {
-    if (word.frequency >= 1 && word.frequency <= R) {
-      if (word.hskLevel <= 6) {
+    if (word.frequency !== null && word.frequency >= 1 && word.frequency <= R) {
+      if (word.hskLevel !== null && word.hskLevel <= 6) {
         hsk16Ranks.push(word.frequency);
       } else {
         hsk79Ranks.push(word.frequency);

@@ -11,7 +11,7 @@ let db: ReturnType<typeof Database> | null = null;
 
 function getDb() {
   if (!db) {
-    db = new Database(DB_PATH, { readonly: true });
+    db = new Database(DB_PATH);
     db.pragma("journal_mode = WAL");
   }
   return db;
@@ -26,17 +26,18 @@ export function getAllWords(version: HskVersion = "3.0"): HskWord[] {
   const col = version === "2.0" ? "hsk_level_v2" : "hsk_level_v3";
   const rows = getDb()
     .prepare(
-      `SELECT simplified, pinyin, meaning, ${col} AS hsk_level, frequency
+      `SELECT simplified, pinyin, meaning, ${col} AS hsk_level, frequency, source
        FROM words
-       WHERE ${col} IS NOT NULL
-       ORDER BY ${col}, pinyin`
+       WHERE ${col} IS NOT NULL OR source = 'custom'
+       ORDER BY CASE WHEN source = 'custom' THEN 1 ELSE 0 END, ${col}, pinyin`
     )
     .all() as Array<{
     simplified: string;
     pinyin: string;
     meaning: string;
-    hsk_level: number;
-    frequency: number;
+    hsk_level: number | null;
+    frequency: number | null;
+    source: string;
   }>;
 
   const words: HskWord[] = rows.map((r) => ({
@@ -52,15 +53,43 @@ export function getAllWords(version: HskVersion = "3.0"): HskWord[] {
   return words;
 }
 
-export function getWords(level?: number, version: HskVersion = "3.0"): HskWordWithDeck[] {
+export function getWords(level?: number | "custom", version: HskVersion = "3.0"): HskWordWithDeck[] {
   const allWords = getAllWords(version);
   const wordIndex = getWordIndex();
-  const filtered = level ? allWords.filter((w) => w.hskLevel === level) : allWords;
+  const filtered = level === "custom"
+    ? allWords.filter((w) => w.hskLevel === null)
+    : level
+      ? allWords.filter((w) => w.hskLevel === level)
+      : allWords;
 
   return filtered.map((w) => ({
     ...w,
     hasIndex: w.id in wordIndex,
   }));
+}
+
+function clearCache() {
+  cachedWords.clear();
+}
+
+export function addCustomWord(simplified: string, pinyin: string, meaning: string): { ok: true } | { ok: false; error: string } {
+  const existing = getDb()
+    .prepare("SELECT simplified FROM words WHERE simplified = ?")
+    .get(simplified) as { simplified: string } | undefined;
+
+  if (existing) {
+    return { ok: false, error: `"${simplified}" already exists in the word list` };
+  }
+
+  getDb()
+    .prepare(
+      `INSERT INTO words (simplified, pinyin, meaning, source)
+       VALUES (?, ?, ?, 'custom')`
+    )
+    .run(simplified, pinyin, meaning);
+
+  clearCache();
+  return { ok: true };
 }
 
 let cachedIndex: Record<string, WordIndexEntry> | null = null;

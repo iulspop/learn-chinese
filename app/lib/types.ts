@@ -3,8 +3,8 @@ export interface HskWord {
   character: string;
   pinyin: string;
   meaning: string;
-  hskLevel: number;
-  frequency: number;
+  hskLevel: number | null;
+  frequency: number | null;
 }
 
 export interface FrequencyBucket {
