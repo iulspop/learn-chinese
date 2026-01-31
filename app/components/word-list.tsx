@@ -111,15 +111,17 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
       const q = (colonIdx !== -1 ? filterValue.slice(colonIdx + 1) : filterValue).toLowerCase();
       if (!q) return true;
       const w = row.original;
-      const pinyin = stripDiacritics(w.pinyin.toLowerCase());
+      const pinyinLower = w.pinyin.toLowerCase();
+      const pinyinNorm = stripDiacritics(pinyinLower);
+      const pinyinNoSpaces = pinyinNorm.replace(/\s+/g, "");
+      const matchPinyin = pinyinLower.includes(q) || pinyinNorm.includes(q) || pinyinNoSpaces.includes(q.replace(/\s+/g, ""));
       switch (field) {
         case "character": return w.character.includes(q);
-        case "pinyin": return pinyin.includes(q) || w.pinyin.toLowerCase().includes(q);
+        case "pinyin": return matchPinyin;
         case "meaning": return w.meaning.toLowerCase().includes(q);
         default: return (
           w.character.includes(q) ||
-          pinyin.includes(q) ||
-          w.pinyin.toLowerCase().includes(q) ||
+          matchPinyin ||
           w.meaning.toLowerCase().includes(q)
         );
       }
