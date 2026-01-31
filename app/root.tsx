@@ -10,6 +10,15 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
+export const meta: Route.MetaFunction = () => [
+  { title: "Chinese Anki Deck Builder — Flashcards from HSK Vocabulary" },
+  {
+    name: "description",
+    content:
+      "Build custom Anki flashcards for learning Chinese. Pick words from the full HSK vocabulary, then export polished cards with audio, example sentences, and images.",
+  },
+];
+
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
