@@ -20,8 +20,6 @@ export function FrequencyCoverage({ stats, isHsk7 }: { stats: FrequencyStats; is
         <span className="freq-summary">
           {isHsk7 ? (
             <>
-              {stats.levelTracked} / {stats.levelWords} HSK 7-9 words tracked
-              {" "}&middot;{" "}
               {stats.totalTracked} / {stats.totalWords} total HSK words tracked
             </>
           ) : (
