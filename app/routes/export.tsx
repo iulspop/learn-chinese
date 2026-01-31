@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/export";
-import { getWords, getWordIndex } from "~/lib/words.server";
+import { getWords, getWordIndex, type HskVersion } from "~/lib/words.server";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { Toast, type ToastData } from "~/components/toast";
 import type { WordWithTracking, WordIndexEntry } from "~/lib/types";
@@ -186,8 +186,16 @@ const TEMPLATES: CardTemplate[] = [
   },
 ];
 
-export function loader() {
-  const allWords = getWords();
+function parseCookieRaw(cookieHeader: string | null, key: string, fallback: string): string {
+  if (!cookieHeader) return fallback;
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${key}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : fallback;
+}
+
+export function loader({ request }: Route.LoaderArgs) {
+  const cookieHeader = request.headers.get("cookie");
+  const version = parseCookieRaw(cookieHeader, "hsk-version", "3.0") as HskVersion;
+  const allWords = getWords(undefined, version);
   const wordIndex = getWordIndex();
   return { allWords, wordIndex };
 }

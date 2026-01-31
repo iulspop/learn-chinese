@@ -1,14 +1,15 @@
 import { useMemo } from "react";
-import { useLoaderData, Link } from "react-router";
+import { useLoaderData, Link, useNavigate } from "react-router";
 import type { Route } from "./+types/words";
-import { getWords, getAllWords } from "~/lib/words.server";
+import { getWords, getAllWords, type HskVersion } from "~/lib/words.server";
 import { WordList, type WordListPrefs } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
 import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { computeFrequencyStats, computeCoverageCurve } from "~/lib/stats";
 import type { WordWithTracking } from "~/lib/types";
 
-const HSK_LEVELS = [1, 2, 3, 4, 5, 6, 7] as const;
+const HSK_LEVELS_V3 = [1, 2, 3, 4, 5, 6, 7] as const;
+const HSK_LEVELS_V2 = [1, 2, 3, 4, 5, 6] as const;
 const HSK_LEVEL_LABELS: Record<number, string> = { 7: "7-9" };
 
 function parseCookie<T>(cookieHeader: string | null, key: string, fallback: T): T {
@@ -22,14 +23,26 @@ function parseCookie<T>(cookieHeader: string | null, key: string, fallback: T): 
   }
 }
 
+function parseCookieRaw(cookieHeader: string | null, key: string, fallback: string): string {
+  if (!cookieHeader) return fallback;
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${key}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : fallback;
+}
+
 export function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const levelParam = url.searchParams.get("level");
   const level = levelParam ? parseInt(levelParam, 10) : undefined;
-
-  const words = getWords(level);
-  const allWords = getAllWords();
   const cookieHeader = request.headers.get("cookie");
+
+  const version = parseCookieRaw(cookieHeader, "hsk-version", "3.0") as HskVersion;
+  const maxLevel = version === "2.0" ? 6 : 7;
+
+  // If on a level that doesn't exist in this version, ignore the level filter
+  const effectiveLevel = level && level <= maxLevel ? level : undefined;
+
+  const words = getWords(effectiveLevel, version);
+  const allWords = getAllWords(version);
 
   const freqView = parseCookie<"bars" | "coverage">(cookieHeader, "freq-view", "bars");
   const wordListPrefs: WordListPrefs = {
@@ -39,7 +52,7 @@ export function loader({ request }: Route.LoaderArgs) {
     searchField: parseCookie(cookieHeader, "wl-search-field", "all" as const),
   };
 
-  return { words, allWords, currentLevel: level ?? null, freqView, wordListPrefs };
+  return { words, allWords, currentLevel: effectiveLevel ?? null, freqView, wordListPrefs, version };
 }
 
 export async function clientLoader({ serverLoader }: Route.ClientLoaderArgs) {
@@ -62,8 +75,11 @@ export function HydrateFallback() {
 }
 
 export default function WordsRoute() {
-  const { words, allWords, currentLevel, freqView, wordListPrefs } = useLoaderData<typeof clientLoader>();
+  const { words, allWords, currentLevel, freqView, wordListPrefs, version } = useLoaderData<typeof clientLoader>();
   const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
+  const navigate = useNavigate();
+
+  const hskLevels = version === "2.0" ? HSK_LEVELS_V2 : HSK_LEVELS_V3;
 
   const wordsWithTracking: WordWithTracking[] = useMemo(
     () => words.map((w) => ({ ...w, isTracked: trackedWords.has(w.id) })),
@@ -93,10 +109,21 @@ export default function WordsRoute() {
     }
   };
 
+  const handleVersionToggle = () => {
+    const newVersion = version === "3.0" ? "2.0" : "3.0";
+    document.cookie = `hsk-version=${newVersion};path=/;max-age=31536000;SameSite=Lax`;
+    navigate("/words");
+  };
+
   return (
     <div className="words-page">
       <header className="words-header">
-        <h1>HSK Vocabulary</h1>
+        <div className="header-title-row">
+          <h1>HSK Vocabulary</h1>
+          <button type="button" className="version-toggle" onClick={handleVersionToggle}>
+            HSK {version}
+          </button>
+        </div>
         <div className="header-info">
           <span className="tracked-badge">{trackedCount} words tracked</span>
           <Link to="/export" className="export-btn">
@@ -112,7 +139,7 @@ export default function WordsRoute() {
         >
           All
         </Link>
-        {HSK_LEVELS.map((level) => (
+        {hskLevels.map((level) => (
           <Link
             key={level}
             to={`/words?level=${level}`}

@@ -2,19 +2,23 @@ import fs from "node:fs";
 import path from "node:path";
 import type { HskWord, HskWordWithDeck, WordIndexEntry } from "./types";
 
+export type HskVersion = "2.0" | "3.0";
+
 const DATA_DIR = path.join(process.cwd(), "data");
 const COMPLETE_PATH = path.join(DATA_DIR, "complete.json");
 const INDEX_PATH = path.join(DATA_DIR, "word-index.json");
 
-function parseLevel(levelStr: string): number | null {
-  const match = levelStr.match(/^new-(\d+)$/);
+function parseLevel(levelStr: string, version: HskVersion): number | null {
+  const prefix = version === "2.0" ? "old" : "new";
+  const match = levelStr.match(new RegExp(`^${prefix}-(\\d+)$`));
   return match ? parseInt(match[1], 10) : null;
 }
 
-let cachedWords: HskWord[] | null = null;
+const cachedWords = new Map<HskVersion, HskWord[]>();
 
-export function getAllWords(): HskWord[] {
-  if (cachedWords) return cachedWords;
+export function getAllWords(version: HskVersion = "3.0"): HskWord[] {
+  const cached = cachedWords.get(version);
+  if (cached) return cached;
 
   const raw = JSON.parse(fs.readFileSync(COMPLETE_PATH, "utf-8")) as Array<{
     simplified: string;
@@ -29,10 +33,10 @@ export function getAllWords(): HskWord[] {
   const words: HskWord[] = [];
 
   for (const entry of raw) {
-    const newLevel = entry.level
-      .map(parseLevel)
+    const level = entry.level
+      .map((l) => parseLevel(l, version))
       .find((l): l is number => l !== null);
-    if (newLevel == null) continue;
+    if (level == null) continue;
 
     const form = entry.forms[0];
     if (!form) continue;
@@ -42,18 +46,18 @@ export function getAllWords(): HskWord[] {
       character: entry.simplified,
       pinyin: form.transcriptions.pinyin,
       meaning: form.meanings.join("; "),
-      hskLevel: newLevel,
+      hskLevel: level,
       frequency: entry.frequency,
     });
   }
 
   words.sort((a, b) => a.hskLevel - b.hskLevel || a.pinyin.localeCompare(b.pinyin));
-  cachedWords = words;
+  cachedWords.set(version, words);
   return words;
 }
 
-export function getWords(level?: number): HskWordWithDeck[] {
-  const allWords = getAllWords();
+export function getWords(level?: number, version: HskVersion = "3.0"): HskWordWithDeck[] {
+  const allWords = getAllWords(version);
   const wordIndex = getWordIndex();
   const filtered = level ? allWords.filter((w) => w.hskLevel === level) : allWords;
 
