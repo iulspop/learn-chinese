@@ -253,8 +253,7 @@ export function FrequencyCoverage({
                 </>
               ) : (
                 <>
-                  {stats.topNTracked} / {stats.topNTotal} HSK words in top 5000 tracked
-                  ({stats.coveragePercent}%)
+                  {stats.totalTracked} / {stats.totalWords} HSK words tracked
                 </>
               )}
             </span>

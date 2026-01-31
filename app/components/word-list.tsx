@@ -25,7 +25,7 @@ const columns = [
   columnHelper.accessor("isTracked", {
     id: "track",
     header: "Track",
-    cell: ({ row }) => <TrackCell word={row.original} />,
+    cell: ({ row, table }) => <TrackCell word={row.original} onToggle={(table.options.meta as { onToggle: (id: string) => void }).onToggle} />,
     enableSorting: false,
     filterFn: (row, _columnId, filterValue: string) => {
       if (filterValue === "all") return true;
@@ -86,7 +86,7 @@ function stripDiacritics(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-export function WordList({ words, initialColumnVisibility = {}, levelLabel }: { words: WordWithTracking[]; initialColumnVisibility?: VisibilityState; levelLabel?: string }) {
+export function WordList({ words, initialColumnVisibility = {}, onToggle }: { words: WordWithTracking[]; initialColumnVisibility?: VisibilityState; onToggle: (wordId: string) => void }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "frequency", desc: false },
   ]);
@@ -139,6 +139,7 @@ export function WordList({ words, initialColumnVisibility = {}, levelLabel }: { 
         );
       }
     },
+    meta: { onToggle },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),

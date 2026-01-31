@@ -1,16 +1,12 @@
-import { useLoaderData, useSearchParams, Form } from "react-router";
+import { useMemo } from "react";
+import { useLoaderData, useSearchParams } from "react-router";
 import type { Route } from "./+types/words";
-import {
-  getWordsWithTracking,
-  toggleWord,
-  trackAllInLevel,
-  untrackAllInLevel,
-  getTrackedWords,
-  getFrequencyStats,
-  getCoverageCurve,
-} from "~/lib/words.server";
+import { getWords, getAllWords } from "~/lib/words.server";
 import { WordList } from "~/components/word-list";
 import { FrequencyCoverage } from "~/components/frequency-coverage";
+import { useTrackedWords } from "~/hooks/use-tracked-words";
+import { computeFrequencyStats, computeCoverageCurve } from "~/lib/stats";
+import type { WordWithTracking } from "~/lib/types";
 
 const HSK_LEVELS = [1, 2, 3, 4, 5, 6, 7] as const;
 const HSK_LEVEL_LABELS: Record<number, string> = { 7: "7-9" };
@@ -38,41 +34,47 @@ export function loader({ request }: Route.LoaderArgs) {
   const levelParam = url.searchParams.get("level");
   const level = levelParam ? parseInt(levelParam, 10) : undefined;
 
-  const words = getWordsWithTracking(level);
-  const trackedCount = getTrackedWords().tracked.length;
-  const frequencyStats = getFrequencyStats(level);
-  const coverageCurve = getCoverageCurve(level);
+  const words = getWords(level);
+  const allWords = getAllWords();
   const cookieHeader = request.headers.get("cookie");
   const columnVisibility = parseColumnVisibility(cookieHeader);
   const freqView = parseFreqView(cookieHeader);
 
-  return { words, trackedCount, currentLevel: level ?? null, frequencyStats, coverageCurve, freqView, columnVisibility };
-}
-
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "toggle") {
-    const wordId = formData.get("wordId") as string;
-    toggleWord(wordId);
-  } else if (intent === "trackAllLevel") {
-    const level = parseInt(formData.get("level") as string, 10);
-    trackAllInLevel(level);
-  } else if (intent === "untrackAllLevel") {
-    const level = parseInt(formData.get("level") as string, 10);
-    untrackAllInLevel(level);
-  }
-
-  return null;
+  return { words, allWords, currentLevel: level ?? null, freqView, columnVisibility };
 }
 
 export default function WordsRoute() {
-  const { words, trackedCount, currentLevel, frequencyStats, coverageCurve, freqView, columnVisibility } = useLoaderData<typeof loader>();
+  const { words, allWords, currentLevel, freqView, columnVisibility } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
+  const { trackedWords, toggleWord, trackAll, untrackAll } = useTrackedWords();
 
-  const levelTrackedCount = words.filter((w) => w.isTracked).length;
-  const allLevelTracked = words.length > 0 && levelTrackedCount === words.length;
+  const wordsWithTracking: WordWithTracking[] = useMemo(
+    () => words.map((w) => ({ ...w, isTracked: trackedWords.has(w.id) })),
+    [words, trackedWords],
+  );
+
+  const frequencyStats = useMemo(
+    () => computeFrequencyStats(allWords, trackedWords, currentLevel ?? undefined),
+    [allWords, trackedWords, currentLevel],
+  );
+
+  const coverageCurve = useMemo(
+    () => computeCoverageCurve(allWords, trackedWords),
+    [allWords, trackedWords],
+  );
+
+  const trackedCount = trackedWords.size;
+  const levelTrackedCount = wordsWithTracking.filter((w) => w.isTracked).length;
+  const allLevelTracked = wordsWithTracking.length > 0 && levelTrackedCount === wordsWithTracking.length;
+
+  const handleBulkToggle = () => {
+    const levelWordIds = words.map((w) => w.id);
+    if (allLevelTracked) {
+      untrackAll(levelWordIds);
+    } else {
+      trackAll(levelWordIds);
+    }
+  };
 
   return (
     <div className="words-page">
@@ -107,25 +109,17 @@ export default function WordsRoute() {
       {currentLevel !== null && (
         <div className="level-actions">
           <span>
-            {levelTrackedCount} / {words.length} tracked in HSK {HSK_LEVEL_LABELS[currentLevel] ?? currentLevel}
+            {levelTrackedCount} / {wordsWithTracking.length} tracked in HSK {HSK_LEVEL_LABELS[currentLevel] ?? currentLevel}
           </span>
-          <Form method="post">
-            <input
-              type="hidden"
-              name="intent"
-              value={allLevelTracked ? "untrackAllLevel" : "trackAllLevel"}
-            />
-            <input type="hidden" name="level" value={currentLevel} />
-            <button type="submit" className="bulk-btn">
-              {allLevelTracked ? "Untrack All" : "Track All"} HSK {HSK_LEVEL_LABELS[currentLevel] ?? currentLevel}
-            </button>
-          </Form>
+          <button type="button" className="bulk-btn" onClick={handleBulkToggle}>
+            {allLevelTracked ? "Untrack All" : "Track All"} HSK {HSK_LEVEL_LABELS[currentLevel] ?? currentLevel}
+          </button>
         </div>
       )}
 
       <FrequencyCoverage stats={frequencyStats} coverageCurve={coverageCurve} initialView={freqView} isHsk7={currentLevel === 7} />
 
-      <WordList words={words} initialColumnVisibility={columnVisibility} />
+      <WordList words={wordsWithTracking} initialColumnVisibility={columnVisibility} onToggle={toggleWord} />
     </div>
   );
 }

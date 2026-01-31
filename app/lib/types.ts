@@ -26,8 +26,8 @@ export interface FrequencyStats {
   levelTracked?: number;
 }
 
-export interface TrackedWords {
-  tracked: string[];
+export interface HskWordWithDeck extends HskWord {
+  hasIndex: boolean;
 }
 
 export interface WordIndexEntry {

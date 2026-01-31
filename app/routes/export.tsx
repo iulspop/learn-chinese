@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useLoaderData } from "react-router";
 import type { Route } from "./+types/export";
-import { getWordsWithTracking, getWordIndex } from "~/lib/words.server";
+import { getWords, getWordIndex } from "~/lib/words.server";
+import { useTrackedWords } from "~/hooks/use-tracked-words";
 import { Toast, type ToastData } from "~/components/toast";
 import type { WordWithTracking, WordIndexEntry } from "~/lib/types";
 
@@ -186,21 +187,25 @@ const TEMPLATES: CardTemplate[] = [
 ];
 
 export function loader() {
-  const allWords = getWordsWithTracking();
-  const trackedWords = allWords.filter((w) => w.isTracked);
+  const allWords = getWords();
   const wordIndex = getWordIndex();
-
-  const sampleWord =
-    trackedWords.find((w) => wordIndex[w.character]?.sentence) ??
-    trackedWords[0];
-  const sampleIndex = sampleWord ? wordIndex[sampleWord.character] : undefined;
-
-  return { trackedWords, sampleWord, sampleIndex };
+  return { allWords, wordIndex };
 }
 
 export default function ExportRoute() {
-  const { trackedWords, sampleWord, sampleIndex } =
-    useLoaderData<typeof loader>();
+  const { allWords, wordIndex } = useLoaderData<typeof loader>();
+  const { trackedWords } = useTrackedWords();
+
+  const trackedWordsList: WordWithTracking[] = useMemo(
+    () => allWords
+      .filter((w) => trackedWords.has(w.id))
+      .map((w) => ({ ...w, isTracked: true })),
+    [allWords, trackedWords],
+  );
+
+  const sampleWord = trackedWordsList.find((w) => wordIndex[w.character]?.sentence) ?? trackedWordsList[0];
+  const sampleIndex = sampleWord ? wordIndex[sampleWord.character] : undefined;
+
   const [toast, setToast] = useState<ToastData | null>(null);
   const [enabledTemplates, setEnabledTemplates] = useState<
     Record<string, boolean>
@@ -209,12 +214,11 @@ export default function ExportRoute() {
   );
 
   const selectedCount = Object.values(enabledTemplates).filter(Boolean).length;
-  const totalCards = trackedWords.length * selectedCount;
+  const totalCards = trackedWordsList.length * selectedCount;
 
   const toggleTemplate = (id: string) => {
     setEnabledTemplates((prev) => {
       const next = { ...prev, [id]: !prev[id] };
-      // Prevent deselecting all
       if (Object.values(next).every((v) => !v)) return prev;
       return next;
     });
@@ -229,7 +233,7 @@ export default function ExportRoute() {
       const res = await fetch("http://localhost:5001/export-anki", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templates: selected }),
+        body: JSON.stringify({ templates: selected, trackedWords: [...trackedWords] }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -252,7 +256,7 @@ export default function ExportRoute() {
         message: "Failed to connect to export server",
       });
     }
-  }, [enabledTemplates]);
+  }, [enabledTemplates, trackedWords]);
 
   const activeTemplates = TEMPLATES.filter((t) => enabledTemplates[t.id]);
 
@@ -265,7 +269,7 @@ export default function ExportRoute() {
         <h1>Export to Anki</h1>
       </header>
 
-      {trackedWords.length === 0 ? (
+      {trackedWordsList.length === 0 ? (
         <div className="export-empty">
           <p>No words tracked yet. Go back and track some words first.</p>
         </div>
@@ -289,7 +293,7 @@ export default function ExportRoute() {
 
           <div className="export-summary">
             <p>
-              <strong>{trackedWords.length}</strong> words &middot;{" "}
+              <strong>{trackedWordsList.length}</strong> words &middot;{" "}
               {selectedCount} card {selectedCount === 1 ? "type" : "types"}{" "}
               &middot; <strong>{totalCards}</strong> total cards
             </p>
@@ -303,13 +307,13 @@ export default function ExportRoute() {
                   <div className="card-preview">
                     <div className="card-label">Front</div>
                     <div className="anki-card">
-                      {template.front(sampleWord, sampleIndex)}
+                      {sampleWord && template.front(sampleWord, sampleIndex)}
                     </div>
                   </div>
                   <div className="card-preview">
                     <div className="card-label">Back</div>
                     <div className="anki-card">
-                      {template.back(sampleWord, sampleIndex)}
+                      {sampleWord && template.back(sampleWord, sampleIndex)}
                     </div>
                   </div>
                 </div>
