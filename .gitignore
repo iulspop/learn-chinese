@@ -10,6 +10,7 @@
 # Python Server
 /python-server/.venv/
 /python-server/venv/
+/python-server/output/
 __pycache__/
 
 # Anki deck sources (see README for setup)

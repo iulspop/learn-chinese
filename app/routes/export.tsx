@@ -221,6 +221,23 @@ function parseCookieRaw(cookieHeader: string | null, key: string, fallback: stri
   return match ? decodeURIComponent(match[1]) : fallback;
 }
 
+export async function action({ request }: Route.ActionArgs) {
+  const pythonUrl = process.env.PYTHON_API_URL || "http://localhost:5001";
+  const body = await request.text();
+  const res = await fetch(`${pythonUrl}/export-anki`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+  return new Response(res.body, {
+    status: res.status,
+    headers: {
+      "Content-Type": res.headers.get("Content-Type") || "application/octet-stream",
+      "Content-Disposition": res.headers.get("Content-Disposition") || "",
+    },
+  });
+}
+
 export function loader({ request }: Route.LoaderArgs) {
   const cookieHeader = request.headers.get("cookie");
   const version = parseCookieRaw(cookieHeader, "hsk-version", "3.0") as HskVersion;
@@ -337,7 +354,7 @@ export default function ExportRoute() {
       const selected = Object.entries(enabledTemplates)
         .filter(([, v]) => v)
         .map(([k]) => k);
-      const res = await fetch("http://localhost:5001/export-anki", {
+      const res = await fetch("/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ templates: selected, trackedWords: [...trackedWords] }),

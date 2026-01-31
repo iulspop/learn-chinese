@@ -1,9 +1,10 @@
 import json
 import os
+import tempfile
 import hashlib
 import glob
 import genanki
-from flask import Flask, jsonify, send_file, request
+from flask import Flask, jsonify, send_file, request, after_this_request
 from flask_cors import CORS
 
 app = Flask(__name__)
@@ -13,8 +14,6 @@ DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(os.path.dirna
 COMPLETE_PATH = os.path.join(DATA_DIR, "complete.json")
 INDEX_PATH = os.path.join(DATA_DIR, "word-index.json")
 MEDIA_DIR = os.path.join(DATA_DIR, "media")
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, "hsk-vocabulary.apkg")
 
 MODEL_ID = 1607392319
 
@@ -368,13 +367,22 @@ def export_anki():
             )
             deck.add_note(note)
 
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
         pkg = genanki.Package(deck)
         pkg.media_files = media_files
-        pkg.write_to_file(OUTPUT_PATH)
+        tmp = tempfile.NamedTemporaryFile(suffix=".apkg", delete=False)
+        tmp.close()
+        pkg.write_to_file(tmp.name)
+
+        @after_this_request
+        def cleanup(response):
+            try:
+                os.remove(tmp.name)
+            except OSError:
+                pass
+            return response
 
         return send_file(
-            OUTPUT_PATH,
+            tmp.name,
             as_attachment=True,
             download_name="hsk-vocabulary.apkg",
             mimetype="application/octet-stream",
