@@ -82,7 +82,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
   ]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [searchField, setSearchField] = useState<"all" | "character" | "pinyin" | "meaning">("all");
+  const [searchField, setSearchField] = useState<"all" | "character" | "pinyin" | "meaning" | "pinyin+character">("all");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleColumnVisibilityChange = (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
@@ -118,6 +118,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
       switch (field) {
         case "character": return w.character.includes(q);
         case "pinyin": return matchPinyin;
+        case "pinyin+character": return matchPinyin || w.character.includes(q);
         case "meaning": return w.meaning.toLowerCase().includes(q);
         default: return (
           w.character.includes(q) ||
@@ -162,6 +163,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
               <Select.Popup className="search-field-popup">
                 {[
                   { value: "all", label: "All" },
+                  { value: "pinyin+character", label: "Pinyin + Character" },
                   { value: "character", label: "Character" },
                   { value: "pinyin", label: "Pinyin" },
                   { value: "meaning", label: "Meaning" },
@@ -179,7 +181,7 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
         </Select.Root>
         <Input
           className="search-input"
-          placeholder={searchField === "all" ? "Search words..." : `Search ${searchField}...`}
+          placeholder={searchField === "all" ? "Search words..." : searchField === "pinyin+character" ? "Search pinyin or character..." : `Search ${searchField}...`}
           value={globalFilter}
           onChange={(e) => setGlobalFilter((e.target as HTMLInputElement).value)}
         />
