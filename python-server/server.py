@@ -131,7 +131,9 @@ div {
 SENTENCE_BLOCK_FRONT = (
     "{{#SentenceSimplified}}"
     '<div lang="zh-Hans" class="sentence">{{SentenceSimplified}}</div>'
-    '<div class="pinyinSen whover">{{SentencePinyin}}</div>'
+    '<div class="pinyinSen whover">{{SentencePinyin}}'
+    "{{#SentenceSandhi}}<br>Sandhi: {{SentenceSandhi}}{{/SentenceSandhi}}"
+    "</div>"
     "{{/SentenceSimplified}}"
     "{{^SentenceSimplified}}"
     '<div class="stub">(example sentence coming soon)</div>'
@@ -141,7 +143,9 @@ SENTENCE_BLOCK_FRONT = (
 SENTENCE_BLOCK_BACK = (
     "{{#SentenceSimplified}}"
     '<div lang="zh-Hans" class="sentence">{{SentenceSimplified}}</div>'
-    '<div class="pinyinSen">{{SentencePinyin}}</div>'
+    '<div class="pinyinSen">{{SentencePinyin}}'
+    "{{#SentenceSandhi}}<br>Sandhi: {{SentenceSandhi}}{{/SentenceSandhi}}"
+    "</div>"
     '<div class="meaningSent">{{SentenceMeaning}}</div>'
     "{{/SentenceSimplified}}"
     "{{^SentenceSimplified}}"
@@ -163,6 +167,7 @@ HSK_FIELDS = [
     {"name": "Audio"},
     {"name": "SentenceSimplified"},
     {"name": "SentencePinyin"},
+    {"name": "SentenceSandhi"},
     {"name": "SentenceMeaning"},
     {"name": "SentenceAudio"},
     {"name": "SentenceImage"},
@@ -321,6 +326,15 @@ def export_anki():
                     if os.path.exists(f_path) and f_path not in media_files:
                         media_files.append(f_path)
 
+            raw_pinyin = idx.get("sentencePinyin", "")
+            if "Sandhi:" in raw_pinyin:
+                parts = raw_pinyin.split("Sandhi:", 1)
+                sen_pinyin = parts[0].strip()
+                sen_sandhi = parts[1].strip()
+            else:
+                sen_pinyin = raw_pinyin
+                sen_sandhi = ""
+
             note = genanki.Note(
                 model=model,
                 fields=[
@@ -331,7 +345,8 @@ def export_anki():
                     idx.get("partOfSpeech", ""),
                     audio,
                     idx.get("sentence", ""),
-                    idx.get("sentencePinyin", ""),
+                    sen_pinyin,
+                    sen_sandhi,
                     idx.get("sentenceMeaning", ""),
                     sen_audio,
                     sen_image,
