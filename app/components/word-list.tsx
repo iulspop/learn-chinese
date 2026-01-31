@@ -8,9 +8,10 @@ import {
   createColumnHelper,
   type SortingState,
   type VisibilityState,
+  type ColumnFiltersState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Settings2, Search, ChevronDown, Check, Filter } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import { Checkbox } from "@base-ui/react/checkbox";
 import { Select } from "@base-ui/react/select";
@@ -21,10 +22,15 @@ import { TrackCell } from "./word-list-item";
 const columnHelper = createColumnHelper<WordWithTracking>();
 
 const columns = [
-  columnHelper.display({
+  columnHelper.accessor("isTracked", {
     id: "track",
     header: "Track",
     cell: ({ row }) => <TrackCell word={row.original} />,
+    enableSorting: false,
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (filterValue === "all") return true;
+      return filterValue === "tracked" ? row.original.isTracked : !row.original.isTracked;
+    },
     meta: { className: "col-track" },
   }),
   columnHelper.accessor("character", {
@@ -47,6 +53,10 @@ const columns = [
     header: "Deck",
     cell: ({ getValue }) => (getValue() ? "✓" : "—"),
     enableSorting: false,
+    filterFn: (row, _columnId, filterValue: string) => {
+      if (filterValue === "all") return true;
+      return filterValue === "has" ? row.original.hasIndex : !row.original.hasIndex;
+    },
     meta: { className: "col-deck" },
   }),
   columnHelper.accessor("hskLevel", {
@@ -76,11 +86,12 @@ function stripDiacritics(s: string): string {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
-export function WordList({ words, initialColumnVisibility = {} }: { words: WordWithTracking[]; initialColumnVisibility?: VisibilityState }) {
+export function WordList({ words, initialColumnVisibility = {}, levelLabel }: { words: WordWithTracking[]; initialColumnVisibility?: VisibilityState; levelLabel?: string }) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "frequency", desc: false },
   ]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(initialColumnVisibility);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [searchField, setSearchField] = useState<"all" | "character" | "pinyin" | "meaning" | "pinyin+character">("all");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -96,9 +107,10 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
   const table = useReactTable({
     data: words,
     columns,
-    state: { sorting, columnVisibility, globalFilter: `${searchField}:${globalFilter}` },
+    state: { sorting, columnVisibility, columnFilters, globalFilter: `${searchField}:${globalFilter}` },
     onSortingChange: setSorting,
     onColumnVisibilityChange: handleColumnVisibilityChange,
+    onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: (value: string) => {
       const colonIdx = value.indexOf(":");
       if (colonIdx !== -1) {
@@ -186,6 +198,78 @@ export function WordList({ words, initialColumnVisibility = {} }: { words: WordW
           onChange={(e) => setGlobalFilter((e.target as HTMLInputElement).value)}
         />
       </div>
+      <Select.Root
+        value={(columnFilters.find((f) => f.id === "track")?.value as string) ?? "all"}
+        onValueChange={(val) => {
+          setColumnFilters((prev) => {
+            const next = prev.filter((f) => f.id !== "track");
+            if (val !== "all") next.push({ id: "track", value: val });
+            return next;
+          });
+        }}
+      >
+        <Select.Trigger className="filter-pill">
+          <Filter size={12} />
+          <Select.Value placeholder="Tracked" />
+          <Select.Icon className="search-field-icon">
+            <ChevronDown size={12} />
+          </Select.Icon>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Positioner side="bottom" align="start" sideOffset={4} className="search-field-positioner">
+            <Select.Popup className="search-field-popup">
+              {[
+                { value: "all", label: "All" },
+                { value: "tracked", label: "Tracked" },
+                { value: "untracked", label: "Untracked" },
+              ].map((opt) => (
+                <Select.Item key={opt.value} value={opt.value} className="search-field-item">
+                  <Select.ItemIndicator className="search-field-indicator">
+                    <Check size={12} />
+                  </Select.ItemIndicator>
+                  <Select.ItemText>{opt.label}</Select.ItemText>
+                </Select.Item>
+              ))}
+            </Select.Popup>
+          </Select.Positioner>
+        </Select.Portal>
+      </Select.Root>
+      <Select.Root
+        value={(columnFilters.find((f) => f.id === "hasIndex")?.value as string) ?? "all"}
+        onValueChange={(val) => {
+          setColumnFilters((prev) => {
+            const next = prev.filter((f) => f.id !== "hasIndex");
+            if (val !== "all") next.push({ id: "hasIndex", value: val });
+            return next;
+          });
+        }}
+      >
+        <Select.Trigger className="filter-pill">
+          <Filter size={12} />
+          <Select.Value placeholder="Deck" />
+          <Select.Icon className="search-field-icon">
+            <ChevronDown size={12} />
+          </Select.Icon>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Positioner side="bottom" align="start" sideOffset={4} className="search-field-positioner">
+            <Select.Popup className="search-field-popup">
+              {[
+                { value: "all", label: "All" },
+                { value: "has", label: "Has card" },
+                { value: "missing", label: "No card" },
+              ].map((opt) => (
+                <Select.Item key={opt.value} value={opt.value} className="search-field-item">
+                  <Select.ItemIndicator className="search-field-indicator">
+                    <Check size={12} />
+                  </Select.ItemIndicator>
+                  <Select.ItemText>{opt.label}</Select.ItemText>
+                </Select.Item>
+              ))}
+            </Select.Popup>
+          </Select.Positioner>
+        </Select.Portal>
+      </Select.Root>
       <Popover.Root>
         <Popover.Trigger className="columns-pill">
           <Settings2 size={14} />

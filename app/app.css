@@ -207,6 +207,26 @@ body {
   color: #9ca3af;
 }
 
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.filter-pill:hover {
+  background: #e5e7eb;
+}
+
 .columns-pill {
   display: inline-flex;
   align-items: center;
