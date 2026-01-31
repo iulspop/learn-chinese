@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { useLoaderData, Link } from "react-router";
 import type { Route } from "./+types/export";
 import { getWords, getWordIndex, type HskVersion } from "~/lib/words.server";
@@ -314,8 +314,26 @@ export default function ExportRoute() {
     [allWords, trackedWords],
   );
 
-  const sampleWord = trackedWordsList.find((w) => wordIndex[w.character]?.sentence) ?? trackedWordsList[0];
-  const sampleIndex = sampleWord ? wordIndex[sampleWord.character] : undefined;
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Clamp index when list shrinks
+  const clampedIndex = trackedWordsList.length === 0 ? 0 : Math.min(currentIndex, trackedWordsList.length - 1);
+  if (clampedIndex !== currentIndex) setCurrentIndex(clampedIndex);
+
+  const currentWord = trackedWordsList[clampedIndex] ?? null;
+  const currentWordIndex = currentWord ? wordIndex[currentWord.character] : undefined;
+
+  const goPrev = () => setCurrentIndex((i) => Math.max(0, i - 1));
+  const goNext = () => setCurrentIndex((i) => Math.min(trackedWordsList.length - 1, i + 1));
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "ArrowRight") goNext();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  });
 
   const [toast, setToast] = useState<ToastData | null>(null);
   const [enabledTemplates, setEnabledTemplates] = useState<
@@ -412,6 +430,14 @@ export default function ExportRoute() {
             </p>
           </div>
 
+          <div className="card-nav">
+            <button type="button" className="card-nav-btn" onClick={goPrev} disabled={clampedIndex === 0}>&larr;</button>
+            <span className="card-nav-label">
+              {currentWord?.character} &mdash; {clampedIndex + 1} / {trackedWordsList.length}
+            </span>
+            <button type="button" className="card-nav-btn" onClick={goNext} disabled={clampedIndex >= trackedWordsList.length - 1}>&rarr;</button>
+          </div>
+
           <div className="card-templates">
             {activeTemplates.length === 0 ? (
               <div className="card-templates-empty">
@@ -426,13 +452,13 @@ export default function ExportRoute() {
                     <div className="card-preview">
                       <div className="card-label">Front</div>
                       <div className="anki-card">
-                        {sampleWord && template.front(sampleWord, sampleIndex)}
+                        {currentWord && template.front(currentWord, currentWordIndex)}
                       </div>
                     </div>
                     <div className="card-preview">
                       <div className="card-label">Back</div>
                       <div className="anki-card">
-                        {sampleWord && template.back(sampleWord, sampleIndex)}
+                        {currentWord && template.back(currentWord, currentWordIndex)}
                       </div>
                     </div>
                   </div>

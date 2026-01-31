@@ -839,6 +839,42 @@ body {
   line-height: 1;
 }
 
+.card-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.card-nav-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #374151;
+  transition: background 0.15s;
+}
+
+.card-nav-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.card-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.card-nav-label {
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 500;
+  min-width: 120px;
+  text-align: center;
+}
+
 .card-templates-empty {
   text-align: center;
   padding: 2rem 1rem;
