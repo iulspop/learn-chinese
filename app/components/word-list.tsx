@@ -141,13 +141,10 @@ function ShareLinkButton({ onShareList }: { onShareList: () => void }) {
   );
 }
 
-export function WordList({ words, prefs = {}, onToggle, selectionMode = false, selectedIds, onSelectionChange, onShareList }: {
+export function WordList({ words, prefs = {}, onToggle, onShareList }: {
   words: WordWithTracking[];
   prefs?: WordListPrefs;
   onToggle: (wordId: string) => void;
-  selectionMode?: boolean;
-  selectedIds?: Set<string>;
-  onSelectionChange?: (ids: Set<string>) => void;
   onShareList?: () => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>(
@@ -249,30 +246,7 @@ export function WordList({ words, prefs = {}, onToggle, selectionMode = false, s
 
   const { rows } = table.getRowModel();
 
-  const selectableRows = selectionMode ? rows.filter((r) => !r.original.hasIndex) : [];
-
-  const allVisibleSelected = selectionMode && selectableRows.length > 0 && selectedIds
-    ? selectableRows.every((r) => selectedIds.has(r.original.id))
-    : false;
-
-  const toggleSelectAll = () => {
-    if (!onSelectionChange || !selectedIds) return;
-    if (allVisibleSelected) {
-      onSelectionChange(new Set());
-    } else {
-      onSelectionChange(new Set(selectableRows.map((r) => r.original.id)));
-    }
-  };
-
-  const toggleSelect = (id: string) => {
-    if (!onSelectionChange || !selectedIds) return;
-    const next = new Set(selectedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    onSelectionChange(next);
-  };
-
-  const gridTemplateColumns = (selectionMode ? "40px " : "") + table
+  const gridTemplateColumns = table
     .getVisibleFlatColumns()
     .map((col) => (col.columnDef.meta as { gridWidth?: string } | undefined)?.gridWidth ?? "1fr")
     .join(" ");
@@ -452,18 +426,6 @@ export function WordList({ words, prefs = {}, onToggle, selectionMode = false, s
         <div className="word-table-header" role="rowgroup">
           {table.getHeaderGroups().map((headerGroup) => (
             <div className="word-table-row" role="row" key={headerGroup.id} style={{ gridTemplateColumns }}>
-              {selectionMode && (
-                <div role="columnheader" className="word-table-th col-select">
-                  <Checkbox.Root
-                    className="select-checkbox"
-                    checked={allVisibleSelected}
-                    onCheckedChange={toggleSelectAll}
-                    aria-label="Select all visible"
-                  >
-                    <Checkbox.Indicator className="select-checkbox-indicator">&#10003;</Checkbox.Indicator>
-                  </Checkbox.Root>
-                </div>
-              )}
               {headerGroup.headers.map((header) => {
                 const meta = header.column.columnDef.meta as
                   | { className?: string }
@@ -530,19 +492,6 @@ export function WordList({ words, prefs = {}, onToggle, selectionMode = false, s
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                {selectionMode && (
-                  <div role="cell" className="word-table-td col-select">
-                    <Checkbox.Root
-                      className="select-checkbox"
-                      checked={selectedIds?.has(word.id) ?? false}
-                      onCheckedChange={() => toggleSelect(word.id)}
-                      disabled={word.hasIndex}
-                      aria-label={`Select ${word.character}`}
-                    >
-                      <Checkbox.Indicator className="select-checkbox-indicator">&#10003;</Checkbox.Indicator>
-                    </Checkbox.Root>
-                  </div>
-                )}
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta as
                     | { className?: string }

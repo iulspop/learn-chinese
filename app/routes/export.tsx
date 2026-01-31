@@ -445,21 +445,33 @@ export default function ExportRoute() {
               {selectedCount} card {selectedCount === 1 ? "type" : "types"}{" "}
               &middot; <strong>{totalCards}</strong> total cards
               {missingCards.length > 0 && (
-                <> &middot; <strong>{missingCards.length}</strong> missing cards</>
+                <> &middot; <strong>{missingCards.length}</strong> words missing extras (sentence, audio, image)</>
               )}
             </p>
-            {missingCards.length > 0 && (
-              <button
-                type="button"
-                className="generate-missing-btn"
-                onClick={handleGenerateAllMissing}
-                disabled={isGenerating}
-              >
-                {isGenerating && genProgress
-                  ? `Generating ${genProgress.done}/${genProgress.total}...`
-                  : `Generate ${missingCards.length} Missing Cards`}
-              </button>
-            )}
+            <div className="export-summary-actions">
+              {currentWord && !currentWordIndex && !isGenerating && (
+                <button
+                  type="button"
+                  className="generate-single-btn"
+                  onClick={handleGenerateCurrent}
+                  disabled={isGenerating}
+                >
+                  Generate "{currentWord.character}"
+                </button>
+              )}
+              {missingCards.length > 0 && (
+                <button
+                  type="button"
+                  className="generate-missing-btn"
+                  onClick={handleGenerateAllMissing}
+                  disabled={isGenerating}
+                >
+                  {isGenerating && genProgress
+                    ? `Generating ${genProgress.done}/${genProgress.total}...`
+                    : `Generate ${missingCards.length} Missing Extras`}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="card-nav">
@@ -468,16 +480,6 @@ export default function ExportRoute() {
               {currentWord?.character} &mdash; {clampedIndex + 1} / {trackedWordsList.length}
             </span>
             <button type="button" className="card-nav-btn" onClick={goNext} disabled={clampedIndex >= trackedWordsList.length - 1}>&rarr;</button>
-            {currentWord && !currentWordIndex && (
-              <button
-                type="button"
-                className="generate-single-btn"
-                onClick={handleGenerateCurrent}
-                disabled={isGenerating}
-              >
-                {isGenerating ? "Generating..." : "Generate Card"}
-              </button>
-            )}
           </div>
 
           <div className="card-templates">
